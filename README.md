@@ -39,7 +39,8 @@ when they trust the folder:
   "extraKnownMarketplaces": {
     "pr-reviewer": { "source": { "source": "github", "repo": "wilsonluc/pr-reviewer" } }
   },
-  "enabledPlugins": { "pr-reviewer@pr-reviewer": true }
+  "enabledPlugins": { "pr-reviewer@pr-reviewer": true },
+  "permissions": { "allow": ["Edit(./.pr-reviewer/**)"] }
 }
 ```
 
@@ -51,8 +52,13 @@ The repository is private, so each person needs read access to it and `gh` (or g
 - By hand: `/pr-reviewer:review-pr 42` (or with no number for the current branch's pull request).
 - Turn the automatic trigger off for a session: start Claude Code with `PR_REVIEWER_OFF=1`.
 
-State (saved diffs, reports, the last reviewed head per pull request) lives in `.git/pr-reviewer/`, never in the
-work tree.
+State (saved diffs, reports, the last reviewed head per pull request) lives in `.pr-reviewer/` at the repository
+root. The plugin adds it to `.git/info/exclude`, so git ignores it without any change to the repository. Claude
+writes each report there before posting it; to skip that permission prompt, allow it in your settings:
+
+```json
+{ "permissions": { "allow": ["Edit(./.pr-reviewer/**)"] } }
+```
 
 ## The reviewer
 

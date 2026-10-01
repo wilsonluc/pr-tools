@@ -21,10 +21,18 @@ default_branch() {
   printf '%s' "${b:-main}"
 }
 
-# Per-clone state (diffs, reports, reviewed heads), kept out of the work tree.
+# Per-checkout state (diffs, reports, reviewed heads) in <repo>/.pr-reviewer/, ignored through .git/info/exclude.
+# Not inside .git: Claude Code refuses file writes there, and the session writes the report. Absolute path (in git's
+# own form, C:/… on Windows), so the reviewer agent can open the files.
 state_dir() {
-  d="$(git rev-parse --path-format=absolute --git-common-dir)/pr-reviewer"
+  top=$(git rev-parse --show-toplevel) || return 1
+  d="$top/.pr-reviewer"
   mkdir -p "$d"
+  exclude=$(git rev-parse --git-path info/exclude)
+  grep -qx '/.pr-reviewer/' "$exclude" 2>/dev/null || {
+    mkdir -p "$(dirname "$exclude")"
+    echo '/.pr-reviewer/' >>"$exclude"
+  }
   printf '%s' "$d"
 }
 
