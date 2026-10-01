@@ -34,3 +34,8 @@ status() {
   gh api "repos/{owner}/{repo}/statuses/$1" -f state="$2" -f context=pr-reviewer \
     -f description="$3" ${4:+-f target_url="$4"} >/dev/null 2>&1 || true
 }
+
+# Whether a shell command pushes a branch or opens a pull request (the after-push trigger).
+is_push_command() {
+  printf ' %s ' "$1" | grep -Eq '(^|[;&|( ])(git( +-C +[^ ]+| +-c +[^ ]+)* +push|gh +pr +create)( |$)'
+}
