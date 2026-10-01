@@ -31,6 +31,8 @@ state_dir() {
   exclude=$(git rev-parse --git-path info/exclude)
   grep -qx '/.pr-reviewer/' "$exclude" 2>/dev/null || {
     mkdir -p "$(dirname "$exclude")"
+    # A last line without a newline would otherwise swallow the pattern (and break the user's rule).
+    [ -s "$exclude" ] && [ -n "$(tail -c 1 "$exclude")" ] && echo >>"$exclude"
     echo '/.pr-reviewer/' >>"$exclude"
   }
   printf '%s' "$d"
