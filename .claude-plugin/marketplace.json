@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "pr-reviewer",
+  "description": "Automatic pull request reviews inside your Claude Code session.",
+  "owner": {
+    "name": "wilsonluc",
+    "url": "https://github.com/wilsonluc"
+  },
+  "plugins": [
+    {
+      "name": "pr-reviewer",
+      "description": "Reviews each pull request push with a read-only reviewer agent, posts one PR comment and a pr-reviewer commit status, and blocks git commands that bypass the PR flow.",
+      "source": "./plugins/pr-reviewer",
+      "category": "development"
+    }
+  ]
+}

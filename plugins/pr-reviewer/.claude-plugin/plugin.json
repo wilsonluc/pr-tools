@@ -1,0 +1,36 @@
+{
+  "name": "pr-reviewer",
+  "displayName": "PR Reviewer",
+  "version": "0.1.0",
+  "description": "Reviews each pull request push with a read-only reviewer agent, posts one PR comment and a pr-reviewer commit status, and blocks git commands that bypass the PR flow.",
+  "author": {
+    "name": "wilsonluc",
+    "url": "https://github.com/wilsonluc"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/after-push.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
