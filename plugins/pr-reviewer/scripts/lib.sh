@@ -23,7 +23,7 @@ default_branch() {
 
 # Per-clone state (diffs, reports, reviewed heads), kept out of the work tree.
 state_dir() {
-  d="$(git rev-parse --git-common-dir)/pr-reviewer"
+  d="$(git rev-parse --path-format=absolute --git-common-dir)/pr-reviewer"
   mkdir -p "$d"
   printf '%s' "$d"
 }
