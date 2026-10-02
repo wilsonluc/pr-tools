@@ -8,7 +8,11 @@ When Claude pushes a branch that has an open pull request (or opens one with `gh
 2. asks the session to run the `review-pr` skill, which starts a **read-only reviewer agent in the background**;
 3. posts the reviewer's report as one PR comment (`### PR Reviewer at <sha>`), and sets the status to **success**
    with a link to the comment (or **error** if the review failed);
-4. reviews again if new commits landed while it was reviewing.
+4. reviews again if new commits landed while it was reviewing;
+5. **fixes the findings**: the session checks each one against the code, fixes those it can confirm, runs the
+   project's checks and pushes, which starts the next review. It stops when a review is clean, or after 5 rounds
+   with findings in a row (`PR_REVIEWER_MAX_ROUNDS`), and tells you what it fixed, skipped or left for you.
+   Findings that need your decision are listed, not guessed. `PR_REVIEWER_AUTOFIX=0` turns fixing off.
 
 It also blocks git commands that bypass the pull request flow: pushing or committing to the default branch,
 force-pushing, `--no-verify` / `git commit -n`, and changing `core.hooksPath`.
