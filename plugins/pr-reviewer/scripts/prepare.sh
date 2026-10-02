@@ -15,8 +15,10 @@ EOF
 [ "$state" = OPEN ] || { echo "pull request #$pr is $state, not open" >&2; exit 1; }
 
 d=$(state_dir)
-rm -f "$d/pr-$pr.report.md" # a previous review's report must never be posted for this head
-gh pr diff "$pr" >"$d/pr-$pr.diff" || exit 1
+# Files per head, so a review of an older head still running is not overwritten by this one.
+at="$d/pr-$pr-$sha"
+rm -f "$at.report.md" "$at.since.diff" # an earlier attempt's report must never be posted for this head
+gh pr diff "$pr" >"$at.diff" || exit 1
 status "$sha" pending "Review in progress" "$url"
 
 echo "pr=$pr"
@@ -24,20 +26,23 @@ echo "sha=$sha"
 echo "base=$base"
 echo "url=$url"
 echo "title=$title"
-echo "diff=$d/pr-$pr.diff"
-echo "report=$d/pr-$pr.report.md"
-# A later review covers only what is new: the commits since the last reviewed head, when they extend it (a rebase or
-# force push gets a full review). The previous report is our own posted one (post.sh), never a PR comment, which
-# anyone could write.
-[ -s "$d/pr-$pr.previous.md" ] && echo "previous=$d/pr-$pr.previous.md"
+echo "diff=$at.diff"
+echo "report=$at.report.md"
+# A later review covers only what is new: the commits since the last reviewed head, when they only add the pull
+# request's own commits to it. A rebase, force push or merge (of the base branch, say) gets a full review, and so does
+# any head without the previous report to carry its findings forward. That report is our own posted one (post.sh),
+# never a PR comment, which anyone could write.
+previous="$d/pr-$pr.previous.md"
+[ -s "$previous" ] && echo "previous=$previous"
 last=$(cat "$d/$pr.reviewed" 2>/dev/null)
-rm -f "$d/pr-$pr.since.diff"
-if [ -n "$last" ] && [ "$last" != "$sha" ] &&
-  [ "$(gh api "repos/{owner}/{repo}/compare/$last...$sha" -q .status 2>/dev/null)" = ahead ] &&
+if [ -s "$previous" ] && [ -n "$last" ] && [ "$last" != "$sha" ] &&
+  [ "$(gh api "repos/{owner}/{repo}/compare/$last...$sha" \
+    -q 'if .status == "ahead" and all(.commits[]; (.parents | length) == 1) then "ahead" else "" end' \
+    2>/dev/null)" = ahead ] &&
   gh api -H 'Accept: application/vnd.github.v3.diff' "repos/{owner}/{repo}/compare/$last...$sha" \
-    >"$d/pr-$pr.since.diff" 2>/dev/null && [ -s "$d/pr-$pr.since.diff" ]; then
+    >"$at.since.diff" 2>/dev/null && [ -s "$at.since.diff" ]; then
   echo "since=$last"
-  echo "since_diff=$d/pr-$pr.since.diff"
+  echo "since_diff=$at.since.diff"
 fi
 [ "$(git rev-parse HEAD 2>/dev/null)" = "$sha" ] ||
   echo "note=the checked-out commit is not the pull request head; files read for context may differ from the diff"

@@ -12,7 +12,7 @@ this skill"). Call them with `sh "<that directory>/<script>"`.
    current branch. Run `sh prepare.sh <number>`. It saves the diff, marks the head commit as under review, and
    prints `pr=`, `sha=`, `base=`, `url=`, `title=`, `diff=` and `report=` lines, and sometimes `note=`. After an
    earlier review of this pull request it also prints `previous=` (that review's report) and, when the new head only
-   adds commits to the one reviewed, `since=` and `since_diff=` (the diff of those commits).
+   adds the pull request's own commits to the one reviewed, `since=` and `since_diff=` (the diff of those commits).
 
 2. **Review in the background.** Start the `pr-reviewer:reviewer` agent in the background with a prompt
    giving the pull request number, title, base branch, head `sha` and the `diff` path, plus any `note`, and any
