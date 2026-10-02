@@ -67,4 +67,20 @@ CLAUDE_PROJECT_DIR="$repo" outside 2 main "cd /nonexistent/dir && git commit -m 
 CLAUDE_PROJECT_DIR="$repo" outside 2 main "cd ~/../../nowhere && git commit -m x"
 CLAUDE_PROJECT_DIR="$repo" outside 2 main 'cd $REPO && git commit -m x'
 
+# Mixed commands: each git call is checked against its own repo. A second repo, with a space in its path, on a branch.
+other="$(mktemp -d)/my lib"
+mkdir -p "$other"
+git -C "$other" init -q -b feat
+git -C "$other" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
+run 2 main "git commit -m x && git -C '$other' status"
+run 2 main "git -C '$other' status; git push"
+run 0 main "git -C '$other' commit -m x"
+outside 2 feat "git -C '$repo' status && cd '$other' && git status && cd '$repo' && git push origin main"
+git -C "$other" switch -q -c main
+run 2 feat "git -C '$other' push"
+run 2 feat "git -C '$other' push origin main"
+run 2 feat "git -C '$other' commit -m x"
+run 0 feat "git commit -m x && git -C '$other' status"
+rm -rf "$(dirname "$other")"
+
 [ "$fails" = 0 ] && echo "guard: all checks passed" || { echo "guard: $fails failed"; exit 1; }

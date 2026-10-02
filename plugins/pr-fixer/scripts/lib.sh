@@ -21,29 +21,44 @@ default_branch() {
   printf '%s' "${b:-main}"
 }
 
-# The repository a command works in. A PreToolUse hook runs before the command's own `cd`, and the session's directory
-# may be outside the repo (a scratch folder), so the command's directories win: a leading `cd <dir> &&`, then a
-# `git -C <dir>` (relative to it). When that is no repo, the session's start directory (CLAUDE_PROJECT_DIR) is the best
-# guess. Directories are taken as written, `~` expanded; variables are not ($REPO falls back).
-cd_dir() {
+# Each command in a shell command line, as "<dir><TAB><command>" lines: the directory it runs in and the command with any
+# `git -C <dir>` folded into that directory. Commands split at && || ; |; a `cd <dir>` moves the following ones (from
+# the hook's own directory, ~ expanded). A PreToolUse hook runs before the command's own cd, and the session's
+# directory may be outside the repo, so each git call is checked against the repo it runs in. A directory that is no
+# repo (a cd that fails, a variable such as $REPO, which is not expanded) falls back to the session's start directory
+# (CLAUDE_PROJECT_DIR).
+first_word() {
   printf '%s' "$1" | sed -nE \
-    -e 's/^[[:space:]]*cd[[:space:]]+"([^"]+)"[[:space:]]*(&&|;).*/\1/p;t' \
-    -e "s/^[[:space:]]*cd[[:space:]]+'([^']+)'[[:space:]]*(&&|;).*/\\1/p;t" \
-    -e 's/^[[:space:]]*cd[[:space:]]+([^ ;&|]+)[[:space:]]*(&&|;).*/\1/p' | head -n 1
+    -e 's/^[[:space:]]*"([^"]*)".*/\1/p;t' \
+    -e "s/^[[:space:]]*'([^']*)'.*/\\1/p;t" \
+    -e 's/^[[:space:]]*([^[:space:]]+).*/\1/p'
 }
-git_c_dir() {
-  printf '%s' "$1" | sed -nE \
-    -e 's/.*git[[:space:]]+-C[[:space:]]+"([^"]+)".*/\1/p;t' \
-    -e "s/.*git[[:space:]]+-C[[:space:]]+'([^']+)'.*/\\1/p;t" \
-    -e 's/.*git[[:space:]]+-C[[:space:]]+([^ ;&|]+).*/\1/p' | head -n 1
+# The directory <dir> names from <base>, or <base> when it cannot be entered.
+resolve_dir() {
+  d=$2
+  case $d in "~"*) d=$HOME${d#\~} ;; esac
+  (cd "$1" 2>/dev/null && cd "$d" 2>/dev/null && pwd) || printf '%s' "$1"
 }
-enter_dir() {
-  [ -n "$1" ] || return 0
-  case $1 in "~"*) set -- "$HOME${1#\~}" ;; esac
-  cd "$1" 2>/dev/null || true
-}
-enter_command_dir() {
-  enter_dir "$(cd_dir "$1")"
-  enter_dir "$(git_c_dir "$1")"
-  git rev-parse --git-dir >/dev/null 2>&1 || [ -z "$CLAUDE_PROJECT_DIR" ] || cd "$CLAUDE_PROJECT_DIR" 2>/dev/null || true
+git_commands() {
+  printf '%s\n' "$1" | awk '{ gsub(/&&|\|\||;|\|/, "\n"); print }' | {
+    base=$(pwd)
+    while IFS= read -r seg; do
+      seg=$(printf '%s' "$seg" | sed -E 's/^[[:space:](]+//; s/[[:space:])]+$//')
+      [ -n "$seg" ] || continue
+      case $seg in
+        "cd "*)
+          base=$(resolve_dir "$base" "$(first_word "${seg#cd }")")
+          continue
+          ;;
+      esac
+      dir=$base
+      c=$(printf '%s' "$seg" | sed -nE "s/.*git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+).*/\\2/p")
+      if [ -n "$c" ]; then
+        dir=$(resolve_dir "$base" "$(first_word "$c")")
+        seg=$(printf '%s' "$seg" | sed -E "s/(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1/")
+      fi
+      git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || [ -z "$CLAUDE_PROJECT_DIR" ] || dir=$CLAUDE_PROJECT_DIR
+      printf '%s\t%s\n' "$dir" "$seg"
+    done
+  }
 }

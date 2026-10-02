@@ -16,7 +16,10 @@ for i in 1 2 3 4 5 6 7 8; do
   IFS=$tab read -r pr sha base url state branch title <<EOF
 $info
 EOF
-  [ "$branch" = "$(git symbolic-ref --short HEAD 2>/dev/null)" ] && [ "$sha" != "$local_head" ] || break
+  # Wait only for a head just pushed (the push target is at local HEAD); a branch that is ahead or behind never
+  # catches up, so it is reviewed as GitHub has it straight away.
+  [ "$branch" = "$(git symbolic-ref --short HEAD 2>/dev/null)" ] && [ "$sha" != "$local_head" ] &&
+    [ "$(git rev-parse '@{push}' 2>/dev/null)" = "$local_head" ] || break
 done
 [ "$state" = OPEN ] || { echo "pull request #$pr is $state, not open" >&2; exit 1; }
 

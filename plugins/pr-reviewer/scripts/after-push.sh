@@ -8,9 +8,16 @@
 cmd=$(tool_command | tr '\n\t' '  ')
 is_push_command "$cmd" || exit 0
 command -v gh >/dev/null 2>&1 || exit 0
-# The repo the command pushed from (see enter_command_dir): not simply CLAUDE_PROJECT_DIR, which is where the session
-# started and can be a parent folder.
-enter_command_dir "$cmd"
+# The repo the push ran in (see git_commands): not simply CLAUDE_PROJECT_DIR, which is where the session started and
+# can be a parent folder.
+tab=$(printf '\t')
+dir=''
+while IFS=$tab read -r d seg; do
+  if is_push_command "$seg"; then dir=$d; break; fi
+done <<EOF
+$(git_commands "$cmd")
+EOF
+[ -n "$dir" ] && cd "$dir" 2>/dev/null || exit 0
 branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
 [ "$branch" != "$(default_branch)" ] || exit 0
 want=$(git rev-parse HEAD)
