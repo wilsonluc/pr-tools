@@ -46,6 +46,12 @@ git init -q "$root/r"
 mkdir -p "$root/r/sub"
 got=$(cd "$root/r" && CLAUDE_PROJECT_DIR='' git_commands 'cd .. && git push' | sed "s|$root|R|; s|$(printf '\t')| ~ |")
 [ "$got" = 'R/r ~ git push' ] || { echo "FAIL post cd ..: got '$got'"; fails=$((fails + 1)); }
-calls 'R ~ git push origin  HEAD:main' "$(printf 'git push origin \\\nHEAD:main')"
+# A path ending in \ (PowerShell's cd C:\repo\) is no continuation: the commit stays its own call, wherever the cd
+# lands (Git Bash takes a\ as a/, other shells may not).
+got=$(cd "$root" && CLAUDE_PROJECT_DIR='' git_commands "$(printf 'cd a\\\ngit commit -m x')" | sed 's/.*\t//')
+[ "$got" = 'git commit -m x' ] || { echo "FAIL cd path ending in \\: got '$got'"; fails=$((fails + 1)); }
+mkdir -p "$root/git" && git init -q "$root/git/app"
+calls 'R/git/app ~ git push' 'git -C git -C app push' # a -C path that is itself named git
+calls 'R ~ git push origin HEAD:main' "$(printf 'git push origin \\\nHEAD:main')"
 
 [ "$fails" = 0 ] && echo "trigger: all checks passed" || { echo "trigger: $fails failed"; exit 1; }

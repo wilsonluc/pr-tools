@@ -71,8 +71,9 @@ resolve_dir() {
   (cd "$1" 2>/dev/null && cd "$d" 2>/dev/null && pwd) || printf '%s' "$1"
 }
 git_commands() {
-  # A line ending in \ continues on the next (git push origin \ / HEAD:main is one command).
-  printf '%s\n' "$1" | awk '{ line = line $0 } sub(/\\$/, " ", line) { next }
+  # A line ending in " \" continues on the next (git push origin \ / HEAD:main is one command); a path ending in \ (a
+  # PowerShell cd C:\repo\) does not.
+  printf '%s\n' "$1" | awk '{ line = line $0 } sub(/[[:space:]]\\$/, " ", line) { next }
     { gsub(/&&|\|\||;|\|/, "\n", line); print line; line = "" } END { if (line != "") print line }' | {
     base=$(pwd)
     here=$base
@@ -91,10 +92,13 @@ git_commands() {
       dir=$base
       # Each -C in turn, relative to the one before, as git applies them (git -C a -C b: a/b).
       for _ in 1 2 3 4 5; do
-        c=$(printf '%s' "$seg" | sed -nE "s/.*git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+).*/\\2/p")
+        # The leftmost -C of a whole-word git, marked, then taken out: extraction and removal must pick the same one
+        # (a path ending in git, -C /srv/git -C app, is no git call).
+        m=$(printf '%s' "$seg" | sed -E "s/(^|[[:space:]])(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1\\2 @@C@@\\4@@C@@/")
+        c=$(printf '%s' "$m" | sed -nE 's/.*@@C@@(.*)@@C@@.*/\1/p')
         [ -n "$c" ] || break
         dir=$(resolve_dir "$dir" "$(first_word "$c")")
-        seg=$(printf '%s' "$seg" | sed -E "s/(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1/")
+        seg=$(printf '%s' "$m" | sed -E 's/ @@C@@.*@@C@@//')
       done
       case $seg in *git* | *"gh pr"*) ;; *) continue ;; esac
       git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || dir=$here
