@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Read-only pull request reviewer used by the pr-reviewer:review-pr skill. Does one job on a saved diff - triage, summarize, review through one lens (decisions, diff-bugs, code-bugs), or validate one finding. Not for general questions.
+description: Read-only pull request reviewer started by the pr-reviewer:orchestrator agent. Does one job on a saved diff - triage, summarize, review through one lens (decisions, diff-bugs, code-bugs), or validate one finding. Not for general questions.
 tools: Read, Grep, Glob
 model: inherit
 ---

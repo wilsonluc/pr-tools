@@ -50,23 +50,25 @@ The repository is private, so each person needs read access to it and `gh` (or g
 
 When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`), it skips drafts and
 pull requests opened by bots, and otherwise marks the new head with a **pending** `pr-reviewer` commit status and
-asks the session to run `review-pr` with `--comment`. The skill, with every agent read-only and in the background:
+asks the session to run `review-pr` with `--comment`. The skill stops if the pull request is closed, a draft, or
+this head was already reviewed; otherwise it starts one **orchestrator** agent in the background, and the session
+carries on. The orchestrator starts every other agent itself (all read-only) and hands back only the final review:
 
-1. stops if the pull request is closed, a draft, or this head was already reviewed; a **triage** agent (Haiku) stops
-   it too for automated or trivial, plainly correct changes, and a **summary** agent (Sonnet) describes the change;
-2. runs four reviewers at once, each given the title, description and summary:
+1. a **triage** agent (Haiku) stops the review for automated or trivial, plainly correct changes, and a **summary**
+   agent (Sonnet) describes the change;
+2. four reviewers run at once, each given the title, description and summary:
    - two **decisions** reviewers (Sonnet), working independently: they weigh the change heavily against the
      project's written decisions (the review context below, `CONTRIBUTING.md`, decision folders such as
      `docs/adr/`, and the `CLAUDE.md` and `AGENTS.md` files at the root and above each changed file, each governing
      only its own folder), and report a breach only with the decision quoted and linked;
    - a **diff bugs** reviewer (Opus): significant bugs visible from the diff alone;
    - a **code bugs** reviewer (Opus): wrong logic and security holes in the code the change introduces;
-3. checks each finding with its own **validator** (Opus for bugs, Sonnet for decisions) and drops any it cannot
-   confirm;
-4. posts the report as one PR comment (`### PR Reviewer at <sha>`), each finding linked to its lines at that
-   commit, plus one inline comment per finding (with a GitHub suggestion when a small fix settles it), and sets the
-   status to **success** with a link to it (or **error** if the review failed);
-5. reviews again if new commits landed meanwhile, and hands the findings to pr-fixer when it is installed.
+3. each finding gets its own **validator** (Opus for bugs, Sonnet for decisions), and any it cannot confirm is
+   dropped;
+4. the session posts the report as one PR comment (`### PR Reviewer at <sha>`), each finding linked to its lines
+   at that commit, plus one inline comment per finding (with a GitHub suggestion when a small fix settles it), and
+   sets the status to **success** with a link to it (or **error** if the review failed);
+5. the session reviews again if new commits landed meanwhile, and hands the findings to pr-fixer when it is installed.
 
 Reviewers report only what is certain and matters: code that will not build or load, logic wrong whatever the
 input, and clear breaches of a written decision. Never: style, problems that need a particular input to show up,
@@ -76,8 +78,8 @@ aside on purpose.
 - By hand: `/pr-reviewer:review-pr 42` prints the review in the session and posts nothing; add `--comment` to post
   it (no number: the current branch's pull request).
 - Off for a session: start Claude Code with `PR_REVIEWER_OFF=1`.
-- The reviewer agent (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`: it cannot run commands, change
-  files or talk to GitHub. The skill saves the diff and description, finds the guideline files and fetches the
+- The reviewer agent (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`, and the orchestrator
+  (`agents/orchestrator.md`) only those plus `Agent`: neither can run commands, change files or talk to GitHub. The skill saves the diff and description, finds the guideline files and fetches the
   review context first, and posts the report itself. If GitHub refuses the inline comments (a line outside the
   diff), the report comment still holds every finding.
 - Later reviews cover only what is new: the commits since the last reviewed head, with the previous posted report,
@@ -122,6 +124,7 @@ There is no round cap. To set one, start Claude Code with `PR_FIXER_MAX_ROUNDS=<
 
 - **Only pushes made through Claude start a review.** A `git push` from your own terminal does not go through
   Claude Code's hooks; run `/pr-reviewer:review-pr` for those.
+- **Agents starting agents.** The orchestrator needs a Claude Code version whose subagents can start subagents.
 - **The session has to stay open** until a review posts. If it closes first, the status stays pending until the
   next push or a manual run.
 - **Nothing here stops a push to the default branch.** Use GitHub branch protection for that.

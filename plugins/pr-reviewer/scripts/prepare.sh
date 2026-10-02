@@ -37,7 +37,10 @@ at="$d/pr-$pr-$sha"
 rm -f "$at.report.md" "$at.inline.json" "$at.since.diff" "$at.previous.md" "$at.body.md"
 gh pr diff "$pr" >"$at.diff" || exit 1
 gh pr view "$pr" --json body -q .body >"$at.body.md" 2>/dev/null || rm -f "$at.body.md"
-[ "$comment" != --comment ] || status "$sha" pending "Review in progress" "$url"
+last=$(cat "$d/$pr.reviewed" 2>/dev/null)
+# The skill stops for a draft or a head already reviewed without posting, so neither may be marked pending.
+[ "$comment" != --comment ] || [ "$draft" = true ] || [ "$last" = "$sha" ] ||
+  status "$sha" pending "Review in progress" "$url"
 
 echo "pr=$pr"
 echo "sha=$sha"
@@ -60,7 +63,6 @@ echo "inline=$at.inline.json"
 if [ -s "$d/pr-$pr.previous.md" ]; then
   cp "$d/pr-$pr.previous.md" "$at.previous.md" && echo "previous=$at.previous.md"
 fi
-last=$(cat "$d/$pr.reviewed" 2>/dev/null)
 [ "$last" != "$sha" ] || echo "reviewed=yes"
 if [ -s "$at.previous.md" ] && [ -n "$last" ] && [ "$last" != "$sha" ] &&
   [ "$(gh api "repos/{owner}/{repo}/compare/$last...$sha" -q 'if .status == "ahead" and (.commits | length) == .total_commits and all(.commits[]; (.parents | length) == 1) then "ahead" else "" end' 2>/dev/null)" = ahead ] &&
