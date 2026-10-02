@@ -4,7 +4,8 @@
 # Exit 2 blocks the tool call; stderr is shown to Claude as the reason.
 . "$(dirname "$0")/lib.sh"
 
-cmd=$(tool_command | tr '\n\t' '  ')
+raw=$(tool_command | tr '\t' ' ')
+cmd=$(printf '%s' "$raw" | tr '\n' ' ')
 [ -n "$cmd" ] || exit 0
 
 block() {
@@ -24,7 +25,7 @@ has "$GIT +push( +[^ ]+)* +\+" && block "a + refspec force-pushes; ask the user 
 # Per git call, against the repository it runs in (see git_commands): its default branch and current branch. Not
 # simply CLAUDE_PROJECT_DIR, which is where the session started and can be a parent folder.
 tab=$(printf '\t')
-calls=$(git_commands "$cmd")
+calls=$(git_commands "$raw") # lines split commands too
 while IFS=$tab read -r dir seg; do
   [ -n "$seg" ] || continue
   is() { printf ' %s ' "$seg" | grep -Eq -- "$1"; }

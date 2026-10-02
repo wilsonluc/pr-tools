@@ -39,5 +39,7 @@ R/a ~ git status" 'git commit -m x && git -C a status'
 calls 'R/a ~ npm test
 R/a ~ git push' 'cd a && npm test && git push'
 calls 'R ~ git push' 'cd nowhere && git push'
+calls 'R/a ~ git commit -m x
+R/a ~ git push' "$(printf 'cd a\ngit commit -m x\ngit push')"
 
 [ "$fails" = 0 ] && echo "trigger: all checks passed" || { echo "trigger: $fails failed"; exit 1; }

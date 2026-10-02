@@ -22,7 +22,7 @@ default_branch() {
 }
 
 # Each command in a shell command line, as "<dir><TAB><command>" lines: the directory it runs in and the command with any
-# `git -C <dir>` folded into that directory. Commands split at && || ; |; a `cd <dir>` moves the following ones (from
+# `git -C <dir>` folded into that directory. Commands split at newlines and && || ; |; a `cd <dir>` moves the following ones (from
 # the hook's own directory, ~ expanded). A PreToolUse hook runs before the command's own cd, and the session's
 # directory may be outside the repo, so each git call is checked against the repo it runs in. A directory that is no
 # repo (a cd that fails, a variable such as $REPO, which is not expanded) falls back to the session's start directory

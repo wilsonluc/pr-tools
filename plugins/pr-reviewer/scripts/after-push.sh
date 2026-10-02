@@ -5,7 +5,8 @@
 . "$(dirname "$0")/lib.sh"
 
 [ -z "$PR_REVIEWER_OFF" ] || exit 0
-cmd=$(tool_command | tr '\n\t' '  ')
+raw=$(tool_command | tr '\t' ' ')
+cmd=$(printf '%s' "$raw" | tr '\n' ' ')
 is_push_command "$cmd" || exit 0
 command -v gh >/dev/null 2>&1 || exit 0
 # The repo the push ran in (see git_commands): not simply CLAUDE_PROJECT_DIR, which is where the session started and
@@ -15,7 +16,7 @@ dir=''
 while IFS=$tab read -r d seg; do
   if is_push_command "$seg"; then dir=$d; break; fi
 done <<EOF
-$(git_commands "$cmd")
+$(git_commands "$raw")
 EOF
 [ -n "$dir" ] && cd "$dir" 2>/dev/null || exit 0
 branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0

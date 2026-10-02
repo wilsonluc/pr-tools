@@ -83,4 +83,9 @@ run 2 feat "git -C '$other' commit -m x"
 run 0 feat "git commit -m x && git -C '$other' status"
 rm -rf "$(dirname "$other")"
 
+# Several lines in one call: a cd line moves the lines after it (review of pr-tools #3).
+outside 2 main "cd $repo\\ngit commit -m x"
+outside 2 main "cd $repo\\ngit status\\ngit push"
+outside 0 feat "cd $repo\\ngit commit -m x\\ngit push"
+
 [ "$fails" = 0 ] && echo "guard: all checks passed" || { echo "guard: $fails failed"; exit 1; }
