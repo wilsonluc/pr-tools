@@ -1,7 +1,7 @@
 {
   "name": "pr-reviewer",
   "displayName": "PR Reviewer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Reviews each pull request push with a read-only reviewer agent, posts one PR comment and a pr-reviewer commit status, and blocks git commands that bypass the PR flow.",
   "author": {
     "name": "wilsonluc",
