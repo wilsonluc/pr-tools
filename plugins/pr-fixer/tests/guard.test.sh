@@ -7,7 +7,8 @@ repo=$(mktemp -d)
 trap 'rm -rf "$repo"' EXIT
 git -C "$repo" init -q -b main
 git -C "$repo" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
-export CLAUDE_PROJECT_DIR="$repo"
+cd "$repo" || exit 1
+export CLAUDE_PROJECT_DIR="$HOME" # where a session started; the guard must not use it
 fails=0
 
 # run <expected exit> <branch> <command>

@@ -8,7 +8,8 @@
 cmd=$(tool_command | tr '\n\t' '  ')
 is_push_command "$cmd" || exit 0
 command -v gh >/dev/null 2>&1 || exit 0
-cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
+# Runs in the session's current directory (the repo Claude pushed from). Not CLAUDE_PROJECT_DIR: that is where the
+# session started, which can be a parent folder.
 branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
 [ "$branch" != "$(default_branch)" ] || exit 0
 want=$(git rev-parse HEAD)

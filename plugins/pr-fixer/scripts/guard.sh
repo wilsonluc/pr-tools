@@ -6,7 +6,8 @@
 
 cmd=$(tool_command | tr '\n\t' '  ')
 [ -n "$cmd" ] || exit 0
-cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || true
+# Runs in the session's current directory (the repo Claude is working in). Not CLAUDE_PROJECT_DIR: that is where the
+# session started, which can be a parent folder.
 main=$(default_branch)
 current=$(git symbolic-ref --short HEAD 2>/dev/null)
 
