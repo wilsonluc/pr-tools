@@ -63,9 +63,11 @@ outside 0 feat "git -C $repo commit -m x"
 outside 0 feat "cd $repo && git push"
 outside 2 main "cd $(dirname "$repo") && git -C $(basename "$repo") commit -m x"
 # A directory that does not exist (or a variable, not expanded): the session's start directory decides.
-CLAUDE_PROJECT_DIR="$repo" outside 2 main "cd /nonexistent/dir && git commit -m x"
-CLAUDE_PROJECT_DIR="$repo" outside 2 main "cd ~/../../nowhere && git commit -m x"
-CLAUDE_PROJECT_DIR="$repo" outside 2 main 'cd $REPO && git commit -m x'
+export CLAUDE_PROJECT_DIR="$repo"
+outside 2 main "cd /nonexistent/dir && git commit -m x"
+outside 2 main "cd ~/../../nowhere && git commit -m x"
+outside 2 main 'cd $REPO && git commit -m x'
+export CLAUDE_PROJECT_DIR="$HOME" # back to a start directory that is no repo, for the tests below
 
 # Mixed commands: each git call is checked against its own repo. A second repo, with a space in its path, on a branch.
 other="$(mktemp -d)/my lib"

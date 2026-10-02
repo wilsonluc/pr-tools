@@ -6,7 +6,9 @@ description: Review a GitHub pull request with the read-only pr-reviewer:reviewe
 # Review a pull request
 
 The scripts are in `../../scripts/` relative to this skill's base directory (shown above as "Base directory for
-this skill"). Call them with `sh "<that directory>/<script>"`.
+this skill"). Call them with `sh "<that directory>/<script>"`, from the pull request's repository: the one the PR
+Reviewer hook message names ("in the repository at <dir>"), else the current one. When that is not the current
+directory, prefix each call with `cd "<dir>" &&`.
 
 1. **Prepare.** Find the pull request number: the argument, or `gh pr view --json number -q .number` for the
    current branch. Run `sh prepare.sh <number>`. It saves the diff, marks the head commit as under review, and
@@ -25,7 +27,8 @@ this skill"). Call them with `sh "<that directory>/<script>"`.
    skill again for the same pull request, and skip step 5 for this report.
 
 5. **Hand off.** If the report found issues and the `pr-fixer:fix-pr` skill is available (the pr-fixer plugin),
-   run it for this pull request with the comment link. Otherwise leave the findings to the user.
+   run it for this pull request with the comment link and the repository directory. Otherwise leave the findings
+   to the user.
 
 6. **Tell the user** in one or two lines: the comment link and how many issues were found.
 

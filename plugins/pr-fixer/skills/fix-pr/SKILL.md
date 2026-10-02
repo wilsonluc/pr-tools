@@ -6,7 +6,9 @@ description: Fix the findings of a pull request review - from pr-reviewer, anoth
 # Fix a pull request's review findings
 
 The scripts are in `../../scripts/` relative to this skill's base directory (shown above as "Base directory for
-this skill"). Call them with `sh "<that directory>/<script>"`.
+this skill"). Call them with `sh "<that directory>/<script>"`, from the pull request's repository: the directory the
+hand-off names, else the current one (prefix each call, and the fixes and checks, with `cd "<dir>" &&` when it is
+not the current directory).
 
 1. **Start.** Find the pull request number (the argument, or `gh pr view --json number -q .number`). Run
    `sh begin.sh <number>`. If it prints `ok=no`, stop and tell the user its reason; do not switch branches, stash
