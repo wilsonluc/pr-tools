@@ -10,13 +10,15 @@ this skill"). Call them with `sh "<that directory>/<script>"`.
 
 1. **Prepare.** Find the pull request number: the argument, or `gh pr view --json number -q .number` for the
    current branch. Run `sh prepare.sh <number>`. It saves the diff, marks the head commit as under review, and
-   prints `pr=`, `sha=`, `base=`, `url=`, `title=`, `diff=` and `report=` lines (and sometimes `note=`).
+   prints `pr=`, `sha=`, `base=`, `url=`, `title=`, `diff=` and `report=` lines, and sometimes `note=`. After an
+   earlier review of this pull request it also prints `previous=` (that review's report) and, when the new head only
+   adds commits to the one reviewed, `since=` and `since_diff=` (the diff of those commits).
 
 2. **Review in the background.** Start the `pr-reviewer:reviewer` agent in the background with a prompt
-   giving the pull request number, title, base branch, head `sha` and the `diff` path, plus any `note`. When an
-   earlier PR Reviewer comment on this pull request listed findings, include them (the findings, not the Checked list)
-   so the reviewer can check each was fixed for its whole class. Then carry on with whatever you were doing; do not
-   wait idle for it: a thorough review takes several minutes.
+   giving the pull request number, title, base branch, head `sha` and the `diff` path, plus any `note`, and any
+   `previous`, `since` and `since_diff` lines as printed: with `since_diff` the review covers only those commits.
+   Pass paths, not file contents: the reviewer reads them. Then carry on with whatever you were doing; do not wait
+   idle for it: a thorough review takes several minutes.
 
 3. **Post.** When the agent's report arrives, write it to the `report` path with the Write tool, then run
    `sh post.sh <pr> <sha> <report path>`. It posts the comment, sets the status to success and prints the comment

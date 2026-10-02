@@ -62,8 +62,10 @@ When Claude pushes a branch that has an open pull request (or opens one with `gh
   concrete failure and skips style.
 - Reviews go deep rather than fast: the reviewer works through each kind of input a change can get, looks for the
   same mistake elsewhere, and reports only once a full pass finds nothing new, so one review takes several minutes
-  and the fix loop needs fewer rounds. It is also given the previous review's findings, to check each was fixed in
-  every similar case; pr-fixer, in turn, fixes each finding's whole class with a test.
+  and the fix loop needs fewer rounds. pr-fixer, in turn, fixes each finding's whole class.
+- Later reviews cover only what is new: the commits since the last reviewed head (a rebase or force push gets a full
+  review), with the previous posted report, kept locally in `.pr-reviewer/`, to check each finding was fixed in every
+  similar case. Findings are never taken from PR comments, which anyone can write.
 - State (saved diffs, reports, the last reviewed head) lives in `.pr-reviewer/` at the repository root, added to
   `.git/info/exclude` so git ignores it. Claude writes each report there before posting; the
   `Edit(./.pr-reviewer/**)` allow rule above skips that permission prompt.

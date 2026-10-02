@@ -18,6 +18,7 @@ comment=$({ printf '### PR Reviewer at %s\n\n' "$sha"; cat "$report"; } | gh pr 
 status "$sha" success "Review posted" "$comment"
 d=$(state_dir)
 echo "$sha" >"$d/$pr.reviewed"
+cp "$report" "$d/pr-$pr.previous.md" # the next review checks these findings and reviews only what is new
 echo "$comment"
 
 
