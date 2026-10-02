@@ -76,7 +76,8 @@ problems the code already had, what linters catch, general quality no decision a
 aside on purpose.
 
 - By hand: `/pr-reviewer:review-pr 42` prints the review in the session and posts nothing; add `--comment` to post
-  it (no number: the current branch's pull request).
+  it (no number: the current branch's pull request). Add `--full` to review the whole pull request afresh, even a
+  head already reviewed, instead of only what is new since the last review.
 - Off for a session: start Claude Code with `PR_REVIEWER_OFF=1`.
 - The reviewer agent (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`, and the orchestrator
   (`agents/orchestrator.md`) only those plus `Agent`: neither can run commands, change files or talk to GitHub. The skill saves the diff and description, finds the guideline files and fetches the
