@@ -79,7 +79,8 @@ context_sources() {
 }
 
 # fetch_context <owner/repo[@ref][:path]> <state dir>: a shallow, up-to-date copy of that repository under
-# <state dir>/context/, printing the directory to read (the path inside it, when given). Fails when it cannot fetch.
+# <state dir>/context/. Sets ctx_dir to the directory to read (the path inside it, when given) and ctx_link to the
+# same place on GitHub at the commit fetched, for the review to link decisions. Fails when it cannot fetch.
 fetch_context() {
   spec=$1
   path=''
@@ -95,5 +96,8 @@ fetch_context() {
     gh repo clone "$spec" "$dir" -- -q --depth 1 ${ref:+--branch "$ref"} >/dev/null 2>&1 || return 1
   fi
   [ -e "$dir/$path" ] || return 1
-  printf '%s' "$dir${path:+/$path}"
+  ctx_dir="$dir${path:+/$path}"
+  # The repository's own web address (GitHub Enterprise too); no link when gh cannot tell.
+  ctx_link=$(gh repo view "$spec" --json url -q .url 2>/dev/null) &&
+    ctx_link="$ctx_link/blob/$(git -C "$dir" rev-parse HEAD)${path:+/$path}" || ctx_link=''
 }

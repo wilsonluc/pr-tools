@@ -55,10 +55,10 @@ dir="$state/context/acme_adr"
 mkdir -p "$state/context" && git clone -q "$src" "$dir"
 echo two >"$src/docs/0001.md"
 git -C "$src" -c user.name=t -c user.email=t@t commit -qam two
-got=$(fetch_context acme/adr:docs "$state") || fail "fetch_context failed to refresh"
-[ "$got" = "$dir/docs" ] || fail "fetch_context gave '$got', not '$dir/docs'"
+fetch_context acme/adr:docs "$state" || fail "fetch_context failed to refresh"
+[ "$ctx_dir" = "$dir/docs" ] || fail "fetch_context gave '$ctx_dir', not '$dir/docs'"
 [ "$(cat "$dir/docs/0001.md")" = two ] || fail "fetch_context did not refresh the copy"
-fetch_context acme/adr:missing "$state" >/dev/null && fail "fetch_context passed a missing path"
+fetch_context acme/adr:missing "$state" && fail "fetch_context passed a missing path"
 rm -rf "$src"
 
 [ "$fails" = 0 ] && echo "helpers: all checks passed" || { echo "helpers: $fails failed"; exit 1; }

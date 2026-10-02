@@ -21,7 +21,7 @@ d=$(state_dir)
 # new). The head only once the report is kept, so the two always belong together.
 cp "$report" "$d/pr-$pr.previous.md" && echo "$sha" >"$d/$pr.reviewed"
 at="$d/pr-$pr-$sha"
-rm -f "$at.diff" "$at.since.diff" "$at.previous.md" "$at.report.md"
+rm -f "$at.diff" "$at.since.diff" "$at.previous.md" "$at.body.md" "$at.report.md"
 echo "$comment"
 
 now=$(gh pr view "$pr" --json headRefOid -q .headRefOid 2>/dev/null)

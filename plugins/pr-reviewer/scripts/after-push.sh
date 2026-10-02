@@ -1,6 +1,7 @@
 #!/bin/sh
 # PostToolUse (Bash, PowerShell): after a push or `gh pr create`, tell the session when the branch's open pull
-# request is at a head that has not been reviewed yet. The session then runs the review-pr skill.
+# request is at a head that has not been reviewed yet. The session then runs the review-pr skill. Draft pull
+# requests and ones opened by bots are left alone (run /pr-reviewer:review-pr for those).
 # Opt out: PR_REVIEWER_OFF=1.
 . "$(dirname "$0")/lib.sh"
 
@@ -15,14 +16,15 @@ want=$(git rev-parse HEAD)
 # GitHub can take a moment to move the pull request's head after a push.
 pr='' head='' url=''
 at_head() {
-  set -- $(gh pr view "$branch" --json state,number,headRefOid,url \
-    -q 'select(.state=="OPEN") | "\(.number) \(.headRefOid) \(.url)"' 2>/dev/null)
+  set -- $(gh pr view "$branch" --json state,isDraft,author,number,headRefOid,url \
+    -q 'select(.state == "OPEN" and (.isDraft | not) and (.author.is_bot | not)) | "\(.number) \(.headRefOid) \(.url)"' \
+    2>/dev/null)
   pr=$1 head=$2 url=$3
-  [ -n "$pr" ] || return 0 # no open pull request for this branch: nothing to wait for
+  [ -n "$pr" ] || return 0 # no open pull request to review for this branch: nothing to wait for
   [ "$head" = "$want" ]
 }
 poll "$HOOK_HEAD_WAIT" at_head || true
-[ -n "$pr" ] && [ "$head" = "$want" ] || exit 0 # no open pull request at this commit (yet)
+[ -n "$pr" ] && [ "$head" = "$want" ] || exit 0 # none to review at this commit (yet)
 [ "$(cat "$(state_dir)/$pr.reviewed" 2>/dev/null)" != "$want" ] || exit 0
 
 status "$want" pending "Review queued" "$url"

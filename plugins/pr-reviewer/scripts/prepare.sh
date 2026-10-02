@@ -1,9 +1,10 @@
 #!/bin/sh
 # review-pr step 1: save what the reviewers read, and mark the pull request's head as under review.
 #   sh prepare.sh <pr-number>
-# Prints key=value lines: pr, sha, base, url, title, diff, report; after an earlier review previous (that review's
-# report) and, when the head only added the pull request's own commits since, since and since_diff; one context line
-# per decision source fetched (.claude/review-context, PR_REVIEW_CONTEXT); and sometimes note.
+# Prints key=value lines: pr, sha, base, url, title, blob (the head's files on GitHub, for links), diff, report, and
+# body when the pull request has a description; after an earlier review previous (that review's report) and, when the
+# head only added the pull request's own commits since, since and since_diff; for each decision source fetched
+# (.claude/review-context, PR_REVIEW_CONTEXT) a context line and, when known, a context_link line; and sometimes note.
 . "$(dirname "$0")/lib.sh"
 
 pr=${1:?usage: prepare.sh <pr-number>}
@@ -28,8 +29,9 @@ poll "$HEAD_WAIT" pr_ready || true
 d=$(state_dir)
 # Files per head, so a review of an older head still running is never overwritten; post.sh removes them.
 at="$d/pr-$pr-$sha"
-rm -f "$at.report.md" "$at.since.diff" "$at.previous.md" # an earlier attempt's report must never be posted
+rm -f "$at.report.md" "$at.since.diff" "$at.previous.md" "$at.body.md" # an earlier attempt's must never be used
 gh pr diff "$pr" >"$at.diff" || exit 1
+gh pr view "$pr" --json body -q .body >"$at.body.md" 2>/dev/null || rm -f "$at.body.md"
 status "$sha" pending "Review in progress" "$url"
 
 echo "pr=$pr"
@@ -37,8 +39,11 @@ echo "sha=$sha"
 echo "base=$base"
 echo "url=$url"
 echo "title=$title"
+echo "blob=${url%/pull/*}/blob/$sha"
 echo "diff=$at.diff"
 echo "report=$at.report.md"
+# The description is the author's intent: data for the reviewers, in a file since it spans lines.
+[ -s "$at.body.md" ] && [ -n "$(tr -d '[:space:]' <"$at.body.md")" ] && echo "body=$at.body.md"
 
 # A later review covers only what is new: the commits since the last reviewed head, when they are all the pull
 # request's own (a rebase, force push or merge gets a full review), and only with that review's report to carry its
@@ -58,8 +63,9 @@ fi
 
 # The decisions the change must respect, from other repositories (see context_sources).
 context_sources | while IFS= read -r source; do
-  if where=$(fetch_context "$source" "$d"); then
-    echo "context=$where"
+  if fetch_context "$source" "$d"; then
+    echo "context=$ctx_dir"
+    [ -z "$ctx_link" ] || echo "context_link=$ctx_link"
   else
     echo "note=could not fetch review context $source (gh access, the ref or the path); review without it"
   fi
