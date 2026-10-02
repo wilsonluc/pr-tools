@@ -44,6 +44,13 @@ want='acme/adr acme/platform@v2:docs/adr other/rules '
 got=$(cd "$repo" && rm .claude/review-context && PR_REVIEW_CONTEXT='' context_sources)
 [ -z "$got" ] || fail "context_sources without sources gave '$got'"
 
+# guide_files: the root's and each changed path's folder and parents, once each, CRLF input included.
+mkdir -p "$repo/a/b" "$repo/c"
+touch "$repo/CLAUDE.md" "$repo/a/AGENTS.md" "$repo/a/b/CLAUDE.md" "$repo/c/CLAUDE.md"
+got=$(printf 'a/b/x.sh\r\na/y.sh\nz.md\n' | guide_files "$repo" | tr '\n' ' ')
+want="$repo/CLAUDE.md $repo/a/b/CLAUDE.md $repo/a/AGENTS.md "
+[ "$got" = "$want" ] || fail "guide_files gave '$got', not '$want'"
+
 # fetch_context: a local repository stands in for GitHub once cloned; refresh and path handling.
 src=$(mktemp -d)
 git -C "$src" init -q && git -C "$src" config core.autocrlf false

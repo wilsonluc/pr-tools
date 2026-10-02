@@ -68,6 +68,19 @@ status() {
     -f description="$3" ${4:+-f target_url="$4"} >/dev/null 2>&1 || true
 }
 
+# guide_files <repo root>: the CLAUDE.md and AGENTS.md files that cover the paths read from stdin (one per line,
+# relative to the root): the root's own, and those in each path's folder and its parents. Absolute paths, each once.
+guide_files() {
+  { echo .; tr -d '\r'; } | while IFS= read -r f; do
+    dir=$(dirname "$f")
+    while :; do
+      for g in CLAUDE.md AGENTS.md; do [ -f "$1/$dir/$g" ] && echo "$dir/$g"; done
+      [ "$dir" = . ] || [ "$dir" = / ] && break
+      dir=$(dirname "$dir")
+    done
+  done | sed 's#^\./##' | awk -v root="$1" '!seen[$0]++ { print root "/" $0 }'
+}
+
 # The decision sources the review must weigh, one per line, as owner/repo[@ref][:path]: the lines of the repository's
 # .claude/review-context (# starts a comment), then PR_REVIEW_CONTEXT (separated by spaces or commas).
 context_sources() {

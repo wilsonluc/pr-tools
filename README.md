@@ -2,9 +2,10 @@
 
 Two Claude Code plugins for pull requests, working inside your Claude Code session:
 
-- **pr-reviewer**: reviews each push to a pull request with read-only agents, one against the project's written
-  decisions (including decision records kept in other GitHub repositories) and one for bugs, confirms each finding
-  with a validator agent, and posts one PR comment and a `pr-reviewer` commit status.
+- **pr-reviewer**: reviews each push to a pull request with read-only agents, two against the project's written
+  decisions and guidelines (including decision records kept in other GitHub repositories) and two for bugs,
+  confirms each finding with a validator agent, and posts a PR comment, inline comments and a `pr-reviewer` commit
+  status.
 - **pr-fixer**: fixes review findings (from pr-reviewer, another bot or a person). It checks each finding against
   the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes.
 
@@ -48,29 +49,37 @@ The repository is private, so each person needs read access to it and `gh` (or g
 ## pr-reviewer
 
 When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`), it skips drafts and
-pull requests opened by bots, and otherwise:
+pull requests opened by bots, and otherwise marks the new head with a **pending** `pr-reviewer` commit status and
+asks the session to run `review-pr` with `--comment`. The skill, with every agent read-only and in the background:
 
-1. marks the new head with a `pr-reviewer` commit status: **pending**, shown in the PR merge box;
-2. asks the session to run the `review-pr` skill, which starts two **read-only reviewer agents in the background**:
-   - **decisions**: weighs the change heavily against the project's written decisions (the review context below,
-     plus `CONTRIBUTING.md`, decision folders such as `docs/adr/`, and the `CLAUDE.md` and `AGENTS.md` files at the
-     root and above each changed file, each governing only its own folder), and reports a finding only with the
-     decision quoted and linked;
-   - **bugs**: works through every kind of input and state the changed code can meet, looks for each mistake
-     everywhere it could recur, and reports only defects it can tie to a concrete failure;
-3. checks each finding with its own **validator agent** and drops the ones it cannot confirm;
+1. stops if the pull request is closed, a draft, or this head was already reviewed; a **triage** agent (Haiku) stops
+   it too for automated or trivial, plainly correct changes, and a **summary** agent (Sonnet) describes the change;
+2. runs four reviewers at once, each given the title, description and summary:
+   - two **decisions** reviewers (Sonnet), working independently: they weigh the change heavily against the
+     project's written decisions (the review context below, `CONTRIBUTING.md`, decision folders such as
+     `docs/adr/`, and the `CLAUDE.md` and `AGENTS.md` files at the root and above each changed file, each governing
+     only its own folder), and report a breach only with the decision quoted and linked;
+   - a **diff bugs** reviewer (Opus): significant bugs visible from the diff alone;
+   - a **code bugs** reviewer (Opus): wrong logic and security holes in the code the change introduces;
+3. checks each finding with its own **validator** (Opus for bugs, Sonnet for decisions) and drops any it cannot
+   confirm;
 4. posts the report as one PR comment (`### PR Reviewer at <sha>`), each finding linked to its lines at that
-   commit, and sets the status to **success** with a link to it (or **error** if the review failed);
+   commit, plus one inline comment per finding (with a GitHub suggestion when a small fix settles it), and sets the
+   status to **success** with a link to it (or **error** if the review failed);
 5. reviews again if new commits landed meanwhile, and hands the findings to pr-fixer when it is installed.
 
-- By hand: `/pr-reviewer:review-pr 42` (no number: the current branch's pull request). This also reviews drafts and
-  bot pull requests.
+Reviewers report only what is certain and matters: code that will not build or load, logic wrong whatever the
+input, and clear breaches of a written decision. Never: style, problems that need a particular input to show up,
+problems the code already had, what linters catch, general quality no decision asks for, and rules the code sets
+aside on purpose.
+
+- By hand: `/pr-reviewer:review-pr 42` prints the review in the session and posts nothing; add `--comment` to post
+  it (no number: the current branch's pull request).
 - Off for a session: start Claude Code with `PR_REVIEWER_OFF=1`.
 - The reviewer agent (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`: it cannot run commands, change
-  files or talk to GitHub. The skill saves the diff and description and fetches the review context first, and posts
-  the report itself. Not reported: problems the code already had, style, what linters catch, general quality no
-  decision asks for, and rules the code sets aside on purpose. A change to only whitespace, formatting or comments
-  gets a short clean report without the agents.
+  files or talk to GitHub. The skill saves the diff and description, finds the guideline files and fetches the
+  review context first, and posts the report itself. If GitHub refuses the inline comments (a line outside the
+  diff), the report comment still holds every finding.
 - Later reviews cover only what is new: the commits since the last reviewed head, with the previous posted report,
   kept locally in `.pr-reviewer/`, to check each finding was fixed in every place. A rebase, force push or merge, or
   a missing previous report, gets a full review. Findings are never taken from PR comments, which anyone can write.
