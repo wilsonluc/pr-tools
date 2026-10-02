@@ -10,7 +10,7 @@ this skill"). Call them with `sh "<that directory>/<script>"`.
 
 1. **Start.** Find the pull request number (the argument, or `gh pr view --json number -q .number`). Run
    `sh begin.sh <number>`. If it prints `ok=no`, stop and tell the user its reason; do not switch branches, stash
-   or pull on your own. It also prints `round` and `max-rounds`.
+   or pull on your own. It also prints `round` (and `max-rounds`, `none` unless the user set a cap).
 
 2. **Collect the findings.** Use the review comment given (its URL), or else read the pull request's comments and
    reviews (`gh pr view <number> --comments`, `gh api repos/{owner}/{repo}/pulls/<number>/comments` for inline
@@ -27,7 +27,7 @@ this skill"). Call them with `sh "<that directory>/<script>"`.
 
 5. **Commit and push.** One commit, message `fix: address review of #<number>` (the round counter depends on this
    prefix), then `git push`. If pr-reviewer is installed, the push starts the next review, and its findings come
-   back to this skill: the loop continues until a review is clean or `max-rounds` is reached.
+   back to this skill: the loop continues until a review is clean.
 
 6. **Tell the user** in a few lines: what you fixed, what you skipped and why, and what needs their decision.
    With nothing to fix (every finding skipped or asked), do not commit.

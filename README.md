@@ -8,7 +8,7 @@ Two Claude Code plugins for pull requests, working inside your Claude Code sessi
   the code, fixes the confirmed ones, runs the project's checks and pushes, and it blocks git commands that bypass
   the pull request flow.
 
-Together they loop: push → review → fix → push → review, until a review is clean or 5 fix rounds in a row have run.
+Together they loop: push → review → fix → push → review, until a review is clean.
 
 ## What they use
 
@@ -75,8 +75,8 @@ When Claude pushes a branch that has an open pull request (or opens one with `gh
 3. fixes the confirmed ones, runs the project's checks, commits `fix: address review of #42` and pushes, which
    starts the next review.
 
-It stops after 5 rounds in a row (`PR_FIXER_MAX_ROUNDS`): a round is one `fix: address review of #N` commit, and any
-other commit at the tip of the branch starts the count again.
+There is no round limit: it keeps going until a review is clean. To cap it, set `PR_FIXER_MAX_ROUNDS`; a round is
+one `fix: address review of #N` commit, and any other commit at the tip of the branch starts the count again.
 
 Its guard hook refuses, for every command Claude runs: pushing or committing to the default branch, force-pushing,
 `--no-verify` / `git commit -n`, and changing `core.hooksPath`.
