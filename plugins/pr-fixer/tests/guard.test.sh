@@ -1,6 +1,6 @@
 #!/bin/sh
-# Checks for scripts/guard.sh and the after-push trigger pattern, in a throwaway repo:
-#   sh plugins/pr-reviewer/tests/guard.test.sh
+# Checks for scripts/guard.sh, in a throwaway repo:
+#   sh plugins/pr-fixer/tests/guard.test.sh
 here=$(cd "$(dirname "$0")" && pwd)
 guard="$here/../scripts/guard.sh"
 repo=$(mktemp -d)
@@ -44,21 +44,5 @@ run 2 main 'git commit -m x'
 run 2 main 'git push'
 run 0 main 'git switch -c feat2'
 run 0 main 'git pull'
-
-# trigger <expected 0|1> <command>: does after-push.sh react to it?
-. "$here/../scripts/lib.sh"
-trigger() {
-  is_push_command "$2" && got=0 || got=1
-  [ "$got" = "$1" ] || { echo "FAIL trigger expected $1 got $got: $2"; fails=$((fails + 1)); }
-}
-trigger 0 'git push'
-trigger 0 'git push -u origin feat'
-trigger 0 'git -C repo push'
-trigger 0 'npm test && git push'
-trigger 0 'gh pr create --fill'
-trigger 1 'git pushd'
-trigger 1 'git status'
-trigger 1 'gh pr view 3'
-trigger 1 'echo pushed'
 
 [ "$fails" = 0 ] && echo "guard: all checks passed" || { echo "guard: $fails failed"; exit 1; }

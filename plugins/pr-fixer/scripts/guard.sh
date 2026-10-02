@@ -1,5 +1,6 @@
 #!/bin/sh
-# PreToolUse (Bash, PowerShell): refuse git commands that bypass the pull request flow.
+# PreToolUse (Bash, PowerShell): refuse git commands that bypass the pull request flow, so the fix loop (and anything
+# else Claude runs) never pushes to the default branch, force-pushes or skips hooks.
 # Exit 2 blocks the tool call; stderr is shown to Claude as the reason.
 . "$(dirname "$0")/lib.sh"
 
@@ -10,7 +11,7 @@ main=$(default_branch)
 current=$(git symbolic-ref --short HEAD 2>/dev/null)
 
 block() {
-  echo "PR Reviewer blocked this: $1" >&2
+  echo "PR Fixer blocked this: $1" >&2
   exit 2
 }
 has() { printf ' %s ' "$cmd" | grep -Eq -- "$1"; }
