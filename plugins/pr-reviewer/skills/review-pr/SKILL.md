@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Review a GitHub pull request through the pr-reviewer:orchestrator agent, which runs read-only reviewers (two against the project's written decisions and guidelines, two for bugs) and a validator per finding. Prints the review, or with --comment posts it (one summary comment plus inline comments) and sets the pr-reviewer commit status. Use when a PR Reviewer hook message says a pull request needs review, or when the user asks to review a pull request. Arguments - the pull request number (default - the current branch's pull request), and --comment to post.
+description: Review a GitHub pull request through the pr-reviewer:orchestrator agent, which runs read-only reviewers (two against the project's written decisions and guidelines, two for bugs) and a validator per finding. Prints the review, or with --comment posts it (one summary comment plus inline comments) and sets the pr-reviewer commit status. Use when a PR Reviewer hook message says a pull request needs review, or when the user asks to review a pull request. Arguments - the pull request number (default - the current branch's pull request), --comment to post, and --full to review the whole pull request afresh instead of only what is new since the last review.
 ---
 
 # Review a pull request
@@ -10,7 +10,8 @@ this skill"). Call them with `sh "<that directory>/<script>"`. Run them in the p
 hook message names, else the current one. Use `gh` for anything on GitHub, never a web fetch.
 
 1. **Prepare.** Find the pull request number: the argument, or `gh pr view --json number -q .number` for the
-   current branch. Run `sh prepare.sh <number>`, adding `--comment` when this run posts. It saves the diff and the
+   current branch. Run `sh prepare.sh <number>`, adding `--comment` when this run posts and `--full` when the
+   arguments ask for it. It saves the diff and the
    description, finds the guideline files, fetches the decision records, and prints key=value lines (see the top of
    `prepare.sh`). Stop here, telling the user why, if it prints `draft=true` or `reviewed=yes`.
 

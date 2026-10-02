@@ -1,6 +1,8 @@
 #!/bin/sh
 # review-pr step 1: save what the reviewers read and, with --comment, mark the pull request's head as under review.
-#   sh prepare.sh <pr-number> [--comment]
+#   sh prepare.sh <pr-number> [--comment] [--full]
+# --full reviews the whole pull request afresh: no earlier review is used, and a head already reviewed is reviewed
+# again.
 # Prints key=value lines: pr, sha, base, url, title, draft, bot (opened by a bot), blob (the head's files on GitHub,
 # for links), diff, report, inline (where the inline comments go), and body when the pull request has a description;
 # a guide line per CLAUDE.md or AGENTS.md at the root or above a changed file; reviewed=yes when this head was already
@@ -9,8 +11,17 @@
 # PR_REVIEW_CONTEXT) a context line and, when known, a context_link line; and sometimes note.
 . "$(dirname "$0")/lib.sh"
 
-pr=${1:?usage: prepare.sh <pr-number> [--comment]}
-comment=${2:-}
+usage='usage: prepare.sh <pr-number> [--comment] [--full]'
+pr=${1:?$usage}
+shift
+comment='' full=''
+for flag; do
+  case $flag in
+  --comment) comment=--comment ;;
+  --full) full=--full ;;
+  *) echo "$usage" >&2; exit 2 ;;
+  esac
+done
 tab=$(printf '\t')
 local_head=$(git rev-parse HEAD 2>/dev/null)
 # Right after a push GitHub can still report the old head: wait up to HEAD_WAIT seconds for it to reach the local
@@ -38,6 +49,7 @@ rm -f "$at.report.md" "$at.inline.json" "$at.since.diff" "$at.previous.md" "$at.
 gh pr diff "$pr" >"$at.diff" || exit 1
 gh pr view "$pr" --json body -q .body >"$at.body.md" 2>/dev/null || rm -f "$at.body.md"
 last=$(cat "$d/$pr.reviewed" 2>/dev/null)
+[ -z "$full" ] || last='' # as if never reviewed
 # The skill stops for a draft or a head already reviewed without posting, so neither may be marked pending.
 [ "$comment" != --comment ] || [ "$draft" = true ] || [ "$last" = "$sha" ] ||
   status "$sha" pending "Review in progress" "$url"
@@ -60,7 +72,7 @@ echo "inline=$at.inline.json"
 # request's own (a rebase, force push or merge gets a full review), and only with that review's report to carry its
 # findings forward. The report is our own posted one (post.sh), copied for this head, never a PR comment, which anyone
 # could write.
-if [ -s "$d/pr-$pr.previous.md" ]; then
+if [ -z "$full" ] && [ -s "$d/pr-$pr.previous.md" ]; then
   cp "$d/pr-$pr.previous.md" "$at.previous.md" && echo "previous=$at.previous.md"
 fi
 [ "$last" != "$sha" ] || echo "reviewed=yes"
