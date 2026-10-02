@@ -69,20 +69,22 @@ outside 2 main "cd ~/../../nowhere && git commit -m x"
 outside 2 main 'cd $REPO && git commit -m x'
 export CLAUDE_PROJECT_DIR="$HOME" # back to a start directory that is no repo, for the tests below
 
-# Mixed commands: each git call is checked against its own repo. A second repo, with a space in its path, on a branch.
+# Mixed commands: every repository the command can touch counts, and one on its default branch blocks a commit or
+# push (fails closed). A second repo, with a space in its path, on a branch.
 other="$(mktemp -d)/my lib"
 mkdir -p "$other"
 git -C "$other" init -q -b feat
 git -C "$other" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
 run 2 main "git commit -m x && git -C '$other' status"
 run 2 main "git -C '$other' status; git push"
-run 0 main "git -C '$other' commit -m x"
+run 2 main "git -C '$other' commit -m x" # this repo (on main) is touched too: blocked
+outside 0 main "git -C '$other' commit -m x" # from outside, only the other repo (on feat) counts
 outside 2 main "git -C '$repo' status && cd '$other' && git status && cd '$repo' && git push"
 git -C "$other" switch -q -c main
 run 2 feat "git -C '$other' push"
 run 2 feat "git -C '$other' push origin main"
 run 2 feat "git -C '$other' commit -m x"
-run 0 feat "git commit -m x && git -C '$other' status"
+run 2 feat "git commit -m x && git -C '$other' status" # the other repo is on main
 rm -rf "$(dirname "$other")"
 
 # Several lines in one call: a cd line moves the lines after it (review of pr-tools #3).
@@ -97,5 +99,18 @@ outside 0 feat "git -C $(dirname "$repo") -C $(basename "$repo") commit -m x"
 # A backslash continues the line: still one push (review of pr-tools #3).
 run 2 feat "git push origin \\\\\\nHEAD:main"
 run 0 feat "git push origin \\\\\\nfeat"
+# PowerShell: a backtick continues the line; Set-Location, sl and Push-Location change directory (review of #3).
+run 2 feat "git push origin \`\\nHEAD:main"
+outside 2 main "Set-Location $repo; git commit -m x"
+outside 2 main "sl -Path $repo; git push"
+outside 0 feat "Push-Location $repo; git commit -m x"
+# Quoted -c values and escaped spaces (review of #3).
+run 2 main 'git -c \"user.name=Claude Bot\" commit -m x'
+run 2 feat 'git -c \"x=a b\" push --force'
+spaced="$(mktemp -d)/My Repo"
+git init -q -b main "$spaced"
+outside 2 main "git -C $(printf '%s' "$spaced" | sed 's/ /\\\\ /') commit -m x"
+outside 2 main "cd $(printf '%s' "$spaced" | sed 's/ /\\\\ /') \u0026\u0026 git commit -m x"
+rm -rf "$(dirname "$spaced")"
 
 [ "$fails" = 0 ] && echo "guard: all checks passed" || { echo "guard: $fails failed"; exit 1; }

@@ -22,47 +22,60 @@ trigger 1 'git status'
 trigger 1 'gh pr view 3'
 trigger 1 'echo pushed'
 
-# calls <expected lines> <command>: git_commands, with directories relative to a scratch tree (a/ and "b c"/).
+# repos <expected repos, one per line, R = scratch root> <command> [directory to run from]: command_repos.
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
-git init -q "$root/a" && git init -q "$root/b c" # repos, so no fallback applies
-calls() {
-  got=$(cd "$root" && CLAUDE_PROJECT_DIR='' git_commands "$2" | sed "s|$root|R|; s|$(printf '\t')| ~ |")
-  [ "$got" = "$1" ] || { echo "FAIL calls expected '$1' got '$got': $2"; fails=$((fails + 1)); }
-}
-calls 'R/a ~ git push' 'cd a && git push'
-calls 'R/b c ~ git push' 'cd "b c" && git push'
-calls 'R/a ~ git push -u origin feat' 'git -C a push -u origin feat'
-calls 'R/b c ~ git push' 'git -C "b c" push'
-calls "R ~ git commit -m x
-R/a ~ git status" 'git commit -m x && git -C a status'
-calls 'R/a ~ git push' 'cd a && npm test && git push' # lines without git, cd or gh are skipped
-calls 'R ~ git push' 'cd nowhere && git push'
-calls 'R/a ~ git commit -m x
-R/a ~ git push' "$(printf 'cd a\ngit commit -m x\ngit push')"
-# After the command (PostToolUse) the hook is already where cd .. took it: replayed, cd .. overshoots to no repo,
-# so the hook's own directory is used (review of pr-tools #3).
-git init -q "$root/r"
+for r in a "b c" "My Repo" git/app r lib app; do git init -q "$root/$r"; done
 mkdir -p "$root/r/sub"
-got=$(cd "$root/r" && CLAUDE_PROJECT_DIR='' git_commands 'cd .. && git push' | sed "s|$root|R|; s|$(printf '\t')| ~ |")
-[ "$got" = 'R/r ~ git push' ] || { echo "FAIL post cd ..: got '$got'"; fails=$((fails + 1)); }
-# A path ending in \ (PowerShell's cd C:\repo\) is no continuation: the commit stays its own call, wherever the cd
-# lands (Git Bash takes a\ as a/, other shells may not).
-got=$(cd "$root" && CLAUDE_PROJECT_DIR='' git_commands "$(printf 'cd a\\\ngit commit -m x')" | sed 's/.*\t//')
-[ "$got" = 'git commit -m x' ] || { echo "FAIL cd path ending in \\: got '$got'"; fails=$((fails + 1)); }
-mkdir -p "$root/git" && git init -q "$root/git/app"
-calls 'R/git/app ~ git push' 'git -C git -C app push' # a -C path that is itself named git
-calls 'R ~ git push origin HEAD:main' "$(printf 'git push origin \\\nHEAD:main')"
+top=$(dirname "$(git -C "$root/a" rev-parse --show-toplevel)") # the root as git writes it (C:/… on Windows)
+repos() {
+  got=$(cd "$root/${3:-}" && CLAUDE_PROJECT_DIR='' command_repos "$2" | sed "s|^$top|R|" | sort)
+  want=$(printf '%s\n' "$1" | sort)
+  [ "$got" = "$want" ] || { echo "FAIL repos expected '$want' got '$got': $2"; fails=$((fails + 1)); }
+}
+repos 'R/a' 'cd a && git push'
+repos 'R/b c' 'cd "b c" && git push'
+repos 'R/a' 'git -C a push -u origin feat'
+repos 'R/b c' "git -C 'b c' push"
+repos 'R/a' 'git commit -m x && git -C a status'
+repos 'R/git/app
+R/app' 'git -C git -C app push' # chained (git/app), and app itself as well: every repository it could be
+repos 'R/lib
+R/app' 'cd lib && git push && cd ../app && git push'                    # every repository, not only the first
+repos 'R/a' 'Set-Location a; git commit -m x'                          # PowerShell
+repos 'R/a' 'sl -Path a; git push'
+repos 'R/a' 'Push-Location -LiteralPath "a"; git push'
+repos 'R/a' 'pushd a && git push'
+repos 'R/My Repo' 'cd My\ Repo && git commit -m x'                      # an escaped space
+repos 'R/My Repo' 'git -C My\ Repo push --force'
+repos 'R/r' 'cd .. && git push' r/sub                                   # from the hook's directory too (PostToolUse)
+repos '' 'cd nowhere && git push'
+repos 'R/a' "$(printf 'cd a\ngit commit -m x')"
 
-# tool_command without jq or node: the command's own text, unescaped (functions shadow the tools for command -v).
-got=$(
-  jq() { return 1; }
-  node() { return 1; }
-  printf '%s' '{"session_id":"s","tool_name":"Bash","tool_input":{"command":"cd /r \u0026\u0026 x\ngit commit -m \"a b\"","description":"d"}}' |
-    tool_command
-)
-want=$(printf 'cd /r \\u0026\\u0026 x\ngit commit -m "a b"')
-[ "$got" = "$want" ] || { echo "FAIL tool_command fallback: got '$got'"; fails=$((fails + 1)); }
+# command_lines: one command per line; " \" and " `" continue a line, a path ending in \ does not.
+lines() {
+  got=$(command_lines "$2")
+  [ "$got" = "$1" ] || { echo "FAIL lines expected '$1' got '$got': $2"; fails=$((fails + 1)); }
+}
+lines 'git push origin HEAD:main' "$(printf 'git push origin \\\nHEAD:main')"
+lines 'git push origin HEAD:main' "$(printf 'git push origin `\nHEAD:main')"
+lines "cd C:\\repo\\
+git commit -m x" "$(printf 'cd C:\\repo\\\ngit commit -m x')"
+lines "$(printf 'a \n b\n c')" 'a && b; c'
+
+# tool_command without jq or node: the command's own text, unescaped in one pass (functions shadow the tools for
+# command -v). \\ stays a backslash, so C:\new and C:\tools stay paths.
+fallback() {
+  got=$(
+    jq() { return 1; }
+    node() { return 1; }
+    printf '{"session_id":"s","tool_name":"Bash","tool_input":{"command":"%s","description":"d"}}' "$1" | tool_command
+  )
+  [ "$got" = "$2" ] || { echo "FAIL tool_command fallback: got '$got', want '$2'"; fails=$((fails + 1)); }
+}
+fallback 'cd /r \u0026\u0026 x\ngit commit -m \"a b\"' "$(printf 'cd /r && x\ngit commit -m "a b"')"
+fallback 'cd C:\\tools\\new; git commit -m x' 'cd C:\tools\new; git commit -m x'
+fallback 'git push origin main\r' 'git push origin main'
 
 # poll: retries until the check succeeds, keeps the variables it sets, and gives up when the time is up.
 POLL=0
@@ -73,5 +86,10 @@ never() { false; }
 start=$(date +%s)
 if poll 1 never; then echo "FAIL poll: a check that never succeeds succeeded"; fails=$((fails + 1)); fi
 [ $(($(date +%s) - start)) -le 3 ] || { echo "FAIL poll: did not stop after its time"; fails=$((fails + 1)); }
+
+# Both plugins carry the same command helpers (each plugin is installed on its own, so they cannot share a file).
+shared() { sed -n '/^tool_command()/,/^command_repos()/p' "$1"; }
+[ "$(shared "$here/../scripts/lib.sh")" = "$(shared "$here/../../pr-fixer/scripts/lib.sh")" ] ||
+  { echo "FAIL the two lib.sh copies differ between tool_command and command_repos"; fails=$((fails + 1)); }
 
 [ "$fails" = 0 ] && echo "trigger: all checks passed" || { echo "trigger: $fails failed"; exit 1; }

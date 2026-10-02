@@ -1,43 +1,45 @@
 #!/bin/sh
-# PostToolUse (Bash, PowerShell): after a push or `gh pr create`, tell the session when the branch's open pull
-# request is at a head that has not been reviewed yet. The session then runs the review-pr skill.
+# PostToolUse (Bash, PowerShell): after a push or `gh pr create`, tell the session when a branch's open pull request
+# is at a head that has not been reviewed yet. The session then runs the review-pr skill.
 # Opt out: PR_REVIEWER_OFF=1.
 . "$(dirname "$0")/lib.sh"
 
 [ -z "$PR_REVIEWER_OFF" ] || exit 0
 raw=$(tool_command | tr '\t' ' ')
-cmd=$(printf '%s' "$raw" | tr '\n' ' ')
-is_push_command "$cmd" || exit 0
+is_push_command "$(command_lines "$raw")" || exit 0
 command -v gh >/dev/null 2>&1 || exit 0
-# The repo the push ran in (see git_commands): not simply CLAUDE_PROJECT_DIR, which is where the session started and
-# can be a parent folder.
-tab=$(printf '\t')
-dir=''
-while IFS=$tab read -r d seg; do
-  if is_push_command "$seg"; then dir=$d; break; fi
+
+# Every repository the command can touch (command_repos): each on a branch with an open pull request at its HEAD gets
+# a review. One deadline for all, inside the hook's own timeout.
+until_all=$(($(date +%s) + HOOK_HEAD_WAIT))
+messages=''
+while IFS= read -r repo; do
+  [ -n "$repo" ] || continue
+  cd "$repo" 2>/dev/null || continue
+  branch=$(git symbolic-ref --short HEAD 2>/dev/null) || continue
+  [ "$branch" != "$(default_branch)" ] || continue
+  want=$(git rev-parse HEAD)
+  pr='' head='' url=''
+  at_head() {
+    set -- $(gh pr view "$branch" --json state,number,headRefOid,url \
+      -q 'select(.state=="OPEN") | "\(.number) \(.headRefOid) \(.url)"' 2>/dev/null)
+    pr=$1 head=$2 url=$3
+    [ -n "$pr" ] || return 0 # no open pull request for this branch: nothing to wait for
+    [ "$head" = "$want" ]
+  }
+  # GitHub can take a moment to move the pull request's head after a push.
+  left=$((until_all - $(date +%s)))
+  poll "$((left > 0 ? left : 0))" at_head || true
+  [ -n "$pr" ] && [ "$head" = "$want" ] || continue # no open pull request at this commit (yet)
+  [ "$(cat "$(state_dir)/$pr.reviewed" 2>/dev/null)" != "$want" ] || continue
+  status "$want" pending "Review queued" "$url"
+  # The repository can differ from the session's directory: the skill runs its scripts there. In git's own form
+  # (C:/… on Windows), which every shell's cd takes; an MSYS /c/… path fails in PowerShell.
+  at=$(printf '%s' "$repo" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  messages="${messages}PR Reviewer: pull request #$pr ($url), in the repository at $at, is now at $want, which has not been reviewed. Run the pr-reviewer:review-pr skill for #$pr in that repository. "
 done <<EOF
-$(git_commands "$raw")
+$(command_repos "$raw")
 EOF
-[ -n "$dir" ] && cd "$dir" 2>/dev/null || exit 0
-branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0
-[ "$branch" != "$(default_branch)" ] || exit 0
-want=$(git rev-parse HEAD)
-
-# GitHub can take a moment to move the pull request's head after a push.
-pr='' head='' url=''
-at_head() {
-  set -- $(gh pr view "$branch" --json state,number,headRefOid,url \
-    -q 'select(.state=="OPEN") | "\(.number) \(.headRefOid) \(.url)"' 2>/dev/null)
-  pr=$1 head=$2 url=$3
-  [ "$head" = "$want" ]
-}
-poll "$HOOK_HEAD_WAIT" at_head || true
-[ -n "$pr" ] && [ "$head" = "$want" ] || exit 0 # no open pull request at this commit (yet)
-[ "$(cat "$(state_dir)/$pr.reviewed" 2>/dev/null)" != "$want" ] || exit 0
-
-status "$want" pending "Review queued" "$url"
-# The repository the push ran in, which can differ from the session's directory: the skill runs its scripts there.
-# In git's own form (C:/… on Windows), which every shell's cd takes; an MSYS /c/… path fails in PowerShell.
-repo=$(git rev-parse --show-toplevel | sed 's/\\/\\\\/g; s/"/\\"/g')
+[ -n "$messages" ] || exit 0
 printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"%s"}}\n' \
-  "PR Reviewer: pull request #$pr ($url), in the repository at $repo, is now at $want, which has not been reviewed. Run the pr-reviewer:review-pr skill for #$pr in that repository. Its reviewer runs in the background, so carry on with your task meanwhile."
+  "${messages}Its reviewer runs in the background, so carry on with your task meanwhile."

@@ -5,41 +5,39 @@
 . "$(dirname "$0")/lib.sh"
 
 raw=$(tool_command | tr '\t' ' ')
-cmd=$(printf '%s' "$raw" | tr '\n' ' ')
-[ -n "$cmd" ] || exit 0
+[ -n "$raw" ] || exit 0
+case $raw in *git*) ;; *) exit 0 ;; esac # every rule below is about a git call
 
 block() {
   echo "PR Fixer blocked this: $1" >&2
   exit 2
 }
-has() { printf ' %s ' "$cmd" | grep -Eq -- "$1"; }
+# Patterns match one command at a time (command_lines), so a word from a neighbouring command never completes one.
+lines=$(command_lines "$raw")
+has() { printf '%s\n' "$lines" | sed 's/.*/ & /' | grep -Eq -- "$1"; }
+GIT="[^[:alnum:]_./-]git( +-[cC] +$VALUE)*"
+ANY='( +[^ ]+)*'
 
-GIT='git( +-C +("[^"]*"|'"'"'[^'"'"']*'"'"'|[^ ]+)| +-c +[^ ]+)*'
-# Whatever the repository: these bypass the flow anywhere.
+# Anywhere: these bypass the flow in any repository.
 has '--no-verify' && block "--no-verify skips the repository's hooks."
-has "$GIT +commit( +[^ ]+)* +-[a-zA-Z]*n[a-zA-Z]*( |$)" && block "git commit -n skips the repository's hooks."
+has "$GIT +commit$ANY +-[a-zA-Z]*n[a-zA-Z]*( |$)" && block "git commit -n skips the repository's hooks."
 has 'core\.hooksPath' && block "changing core.hooksPath turns the repository's hooks off."
-has "$GIT +push( +[^ ]+)* +(--force|--force-with-lease|-f)( |=|$)" && block "force-pushing rewrites shared history; ask the user to do it."
-has "$GIT +push( +[^ ]+)* +\+" && block "a + refspec force-pushes; ask the user to do it."
+has "$GIT +push$ANY +(--force|--force-with-lease|-f)( |=|$)" && block "force-pushing rewrites shared history; ask the user to do it."
+has "$GIT +push$ANY +\+" && block "a + refspec force-pushes; ask the user to do it."
 
-# Per git call, against the repository it runs in (see git_commands): its default branch and current branch. Not
-# simply CLAUDE_PROJECT_DIR, which is where the session started and can be a parent folder.
-case $cmd in *git*) ;; *) exit 0 ;; esac # no git call: nothing below applies
+# Commits and pushes, against every repository the command can touch (command_repos): fails closed, so a command that
+# also names a repository on its default branch is blocked; run it from that repository's own branch instead.
+has "$GIT$ANY +(commit|push)( |$)" || exit 0
 tab=$(printf '\t')
-calls=$(git_commands "$raw") # lines split commands too
-while IFS=$tab read -r dir seg; do
-  [ -n "$seg" ] || continue
-  is() { printf ' %s ' "$seg" | grep -Eq -- "$1"; }
-  is "$GIT"' +(push|commit)( |$)' || continue
-  main=$(cd "$dir" 2>/dev/null && default_branch)
-  current=$(git -C "$dir" symbolic-ref --short HEAD 2>/dev/null)
-  is "$GIT +push( +[^ ]+)* +([^ ]*:)?(refs/heads/)?$main( |$)" &&
+repos=$(command_repos "$raw")
+while IFS= read -r repo; do
+  [ -n "$repo" ] || continue
+  main=$(cd "$repo" && default_branch)
+  has "$GIT$ANY +push$ANY +([^ ]*:)?(refs/heads/)?$main( |$)" &&
     block "pushing to $main; push a branch and open a pull request."
-  [ "$current" = "$main" ] && is "$GIT"' +push( |$)' &&
-    block "you are on $main in $dir; create a branch (git switch -c <name>) and push that."
-  [ "$current" = "$main" ] && is "$GIT"' +commit( |$)' &&
-    block "committing on $main in $dir; create a branch (git switch -c <name>) first."
+  [ "$(git -C "$repo" symbolic-ref --short HEAD 2>/dev/null)" = "$main" ] &&
+    block "$repo is on $main, and this command commits or pushes; create a branch there (git switch -c <name>) first, or run the command from a repository on a branch."
 done <<EOF
-$calls
+$repos
 EOF
 exit 0

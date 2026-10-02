@@ -92,6 +92,11 @@ Its guard hook refuses, for every command Claude runs: pushing or committing to 
   `.claude/settings.json` if the guard matters.
 - The guard matches command text, so a commit message that quotes a blocked command (for example `git push origin
   main`) is refused too. Reword the message.
+- **The guard fails closed across repositories.** A command that commits or pushes is checked against every
+  repository it can touch: the session's directory, its start directory, and every `cd`, `pushd`, `Set-Location`
+  (`sl`, `Push-Location`) and `git -C` target in it. If any of them is on its default branch, the command is refused,
+  even when the commit itself happens elsewhere. Run it from a repository that is on a branch (`cd` there first, in
+  its own command).
 
 ## Development
 

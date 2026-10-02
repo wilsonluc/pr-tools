@@ -15,10 +15,8 @@ directory, prefix each call with `cd "<dir>" &&`.
    prints `pr=`, `sha=`, `base=`, `url=`, `title=`, `diff=` and `report=` lines (and sometimes `note=`).
 
 2. **Review in the background.** Start the `pr-reviewer:reviewer` agent in the background with a prompt
-   giving the pull request number, title, base branch, head `sha` and the `diff` path, plus any `note`. When an
-   earlier PR Reviewer comment on this pull request listed findings, include them (the findings, not the Checked list)
-   so the reviewer can check each was fixed for its whole class. Then carry on with whatever you were doing; do not
-   wait idle for it.
+   giving the pull request number, title, base branch, head `sha` and the `diff` path, plus any `note`. Then carry
+   on with whatever you were doing; do not wait idle for it.
 
 3. **Post.** When the agent's report arrives, write it to the `report` path with the Write tool, then run
    `sh post.sh <pr> <sha> <report path>`. It posts the comment, sets the status to success and prints the comment
