@@ -8,7 +8,7 @@ trap 'rm -rf "$repo"' EXIT
 git -C "$repo" init -q -b main
 git -C "$repo" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
 cd "$repo" || exit 1
-export CLAUDE_PROJECT_DIR="$HOME" # where a session started; the guard must not use it
+export CLAUDE_PROJECT_DIR="$HOME" # where a session started; the guard must not prefer it to the command's repo
 fails=0
 
 # run <expected exit> <branch> <command>
@@ -61,5 +61,10 @@ outside 2 main "git -C $repo commit -m x"
 outside 2 main "cd $repo && git push"
 outside 0 feat "git -C $repo commit -m x"
 outside 0 feat "cd $repo && git push"
+outside 2 main "cd $(dirname "$repo") && git -C $(basename "$repo") commit -m x"
+# A directory that does not exist (or a variable, not expanded): the session's start directory decides.
+CLAUDE_PROJECT_DIR="$repo" outside 2 main "cd /nonexistent/dir && git commit -m x"
+CLAUDE_PROJECT_DIR="$repo" outside 2 main "cd ~/../../nowhere && git commit -m x"
+CLAUDE_PROJECT_DIR="$repo" outside 2 main 'cd $REPO && git commit -m x'
 
 [ "$fails" = 0 ] && echo "guard: all checks passed" || { echo "guard: $fails failed"; exit 1; }

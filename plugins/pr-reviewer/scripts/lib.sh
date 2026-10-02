@@ -50,25 +50,29 @@ is_push_command() {
   printf ' %s ' "$1" | grep -Eq '(^|[;&|( ])(git( +-C +[^ ]+| +-c +[^ ]+)* +push|gh +pr +create)( |$)'
 }
 
-# The repository a command works in: the directory it names (`cd <dir> && …` at its start, or `git -C <dir>`), else
-# the current one. A PreToolUse hook runs before the command's own `cd`, and the session's directory may be outside the
-# repo (a scratch folder), so the command's own directory wins; with none and no repo here, the session's start
-# directory (CLAUDE_PROJECT_DIR) is the best guess.
-command_dir() {
+# The repository a command works in. A PreToolUse hook runs before the command's own `cd`, and the session's directory
+# may be outside the repo (a scratch folder), so the command's directories win: a leading `cd <dir> &&`, then a
+# `git -C <dir>` (relative to it). When that is no repo, the session's start directory (CLAUDE_PROJECT_DIR) is the best
+# guess. Directories are taken as written, `~` expanded; variables are not ($REPO falls back).
+cd_dir() {
   printf '%s' "$1" | sed -nE \
     -e 's/^[[:space:]]*cd[[:space:]]+"([^"]+)"[[:space:]]*(&&|;).*/\1/p;t' \
-    -e "s/^[[:space:]]*cd[[:space:]]+'([^']+)'[[:space:]]*(&&|;).*/\1/p;t" \
-    -e 's/^[[:space:]]*cd[[:space:]]+([^ ;&|]+)[[:space:]]*(&&|;).*/\1/p;t' \
+    -e "s/^[[:space:]]*cd[[:space:]]+'([^']+)'[[:space:]]*(&&|;).*/\\1/p;t" \
+    -e 's/^[[:space:]]*cd[[:space:]]+([^ ;&|]+)[[:space:]]*(&&|;).*/\1/p' | head -n 1
+}
+git_c_dir() {
+  printf '%s' "$1" | sed -nE \
     -e 's/.*git[[:space:]]+-C[[:space:]]+"([^"]+)".*/\1/p;t' \
     -e "s/.*git[[:space:]]+-C[[:space:]]+'([^']+)'.*/\\1/p;t" \
     -e 's/.*git[[:space:]]+-C[[:space:]]+([^ ;&|]+).*/\1/p' | head -n 1
 }
-
+enter_dir() {
+  [ -n "$1" ] || return 0
+  case $1 in "~"*) set -- "$HOME${1#\~}" ;; esac
+  cd "$1" 2>/dev/null || true
+}
 enter_command_dir() {
-  d=$(command_dir "$1")
-  if [ -n "$d" ]; then
-    cd "$d" 2>/dev/null || true
-  elif ! git rev-parse --git-dir >/dev/null 2>&1 && [ -n "$CLAUDE_PROJECT_DIR" ]; then
-    cd "$CLAUDE_PROJECT_DIR" 2>/dev/null || true
-  fi
+  enter_dir "$(cd_dir "$1")"
+  enter_dir "$(git_c_dir "$1")"
+  git rev-parse --git-dir >/dev/null 2>&1 || [ -z "$CLAUDE_PROJECT_DIR" ] || cd "$CLAUDE_PROJECT_DIR" 2>/dev/null || true
 }
