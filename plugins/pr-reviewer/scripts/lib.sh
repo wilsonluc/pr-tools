@@ -76,7 +76,8 @@ git_commands() {
     base=$(pwd)
     while IFS= read -r seg; do
       # Only lines that can matter cost a process (hooks have a timeout; a heredoc can be hundreds of lines).
-      case $seg in *git* | *cd* | *gh*) ;; *) continue ;; esac
+      # (Words, not letters: "through" or "right" in a commit message must not cost a process per line.)
+      case $seg in *git* | *"cd "* | *"gh pr"*) ;; *) continue ;; esac
       seg=$(printf '%s' "$seg" | sed -E 's/^[[:space:](]+//; s/[[:space:])]+$//')
       [ -n "$seg" ] || continue
       case $seg in
@@ -93,7 +94,7 @@ git_commands() {
         dir=$(resolve_dir "$dir" "$(first_word "$c")")
         seg=$(printf '%s' "$seg" | sed -E "s/(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1/")
       done
-      case $seg in *git* | *gh*) ;; *) continue ;; esac
+      case $seg in *git* | *"gh pr"*) ;; *) continue ;; esac
       git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || [ -z "$CLAUDE_PROJECT_DIR" ] || dir=$CLAUDE_PROJECT_DIR
       printf '%s\t%s\n' "$dir" "$seg"
     done
