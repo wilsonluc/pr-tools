@@ -86,11 +86,13 @@ git_commands() {
           ;;
       esac
       dir=$base
-      c=$(printf '%s' "$seg" | sed -nE "s/.*git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+).*/\\2/p")
-      if [ -n "$c" ]; then
-        dir=$(resolve_dir "$base" "$(first_word "$c")")
+      # Each -C in turn, relative to the one before, as git applies them (git -C a -C b: a/b).
+      for _ in 1 2 3 4 5; do
+        c=$(printf '%s' "$seg" | sed -nE "s/.*git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+).*/\\2/p")
+        [ -n "$c" ] || break
+        dir=$(resolve_dir "$dir" "$(first_word "$c")")
         seg=$(printf '%s' "$seg" | sed -E "s/(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1/")
-      fi
+      done
       case $seg in *git* | *gh*) ;; *) continue ;; esac
       git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || [ -z "$CLAUDE_PROJECT_DIR" ] || dir=$CLAUDE_PROJECT_DIR
       printf '%s\t%s\n' "$dir" "$seg"

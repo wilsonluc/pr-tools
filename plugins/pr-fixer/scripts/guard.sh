@@ -30,14 +30,14 @@ calls=$(git_commands "$raw") # lines split commands too
 while IFS=$tab read -r dir seg; do
   [ -n "$seg" ] || continue
   is() { printf ' %s ' "$seg" | grep -Eq -- "$1"; }
-  is 'git( +-c +[^ ]+)* +(push|commit)( |$)' || continue
+  is "$GIT"' +(push|commit)( |$)' || continue
   main=$(cd "$dir" 2>/dev/null && default_branch)
   current=$(git -C "$dir" symbolic-ref --short HEAD 2>/dev/null)
-  is "git( +-c +[^ ]+)* +push( +[^ ]+)* +([^ ]*:)?(refs/heads/)?$main( |$)" &&
+  is "$GIT +push( +[^ ]+)* +([^ ]*:)?(refs/heads/)?$main( |$)" &&
     block "pushing to $main; push a branch and open a pull request."
-  [ "$current" = "$main" ] && is 'git( +-c +[^ ]+)* +push( |$)' &&
+  [ "$current" = "$main" ] && is "$GIT"' +push( |$)' &&
     block "you are on $main in $dir; create a branch (git switch -c <name>) and push that."
-  [ "$current" = "$main" ] && is 'git( +-c +[^ ]+)* +commit( |$)' &&
+  [ "$current" = "$main" ] && is "$GIT"' +commit( |$)' &&
     block "committing on $main in $dir; create a branch (git switch -c <name>) first."
 done <<EOF
 $calls

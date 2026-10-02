@@ -89,6 +89,10 @@ rm -rf "$(dirname "$other")"
 outside 2 main "cd $repo\\ngit commit -m x"
 outside 2 main "cd $repo\\ngit status\\ngit push"
 outside 0 feat "cd $repo\\ngit commit -m x\\ngit push"
+# Several -C, each relative to the one before (review of pr-tools #3).
+outside 2 main "git -C $(dirname "$repo") -C $(basename "$repo") commit -m x"
+outside 2 feat "git -C / -C $repo push origin main"
+outside 0 feat "git -C $(dirname "$repo") -C $(basename "$repo") commit -m x"
 # A backslash continues the line: still one push (review of pr-tools #3).
 run 2 feat "git push origin \\\\\\nHEAD:main"
 run 0 feat "git push origin \\\\\\nfeat"
