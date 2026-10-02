@@ -19,9 +19,9 @@ hook message names, else the current one. Use `gh` for anything on GitHub, never
 
 3. **Take the answer.** The orchestrator replies with one of:
    - `SKIP: <reason>`: tell the user; with `--comment`, run `sh post.sh <pr> <sha> --skip "<reason>"` to finish the
-     commit status.
+     commit status, and stop.
    - `FAILED: <why>`: tell the user; with `--comment`, run `sh post.sh <pr> <sha> /dev/null` so the commit status
-     shows an error instead of staying pending.
+     shows an error instead of staying pending, and stop.
    - `REPORT` and `INLINE` parts: write the report to the `report` path, and the inline JSON (when there is any) to
      the `inline` path, with the Write tool. Show the user each finding in a line. Without `--comment`, stop here.
 
