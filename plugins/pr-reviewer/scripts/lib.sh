@@ -55,8 +55,9 @@ is_push_command() {
 # `git -C <dir>` folded into that directory. Commands split at newlines and && || ; |; a `cd <dir>` moves the following ones (from
 # the hook's own directory, ~ expanded). A PreToolUse hook runs before the command's own cd, and the session's
 # directory may be outside the repo, so each git call is checked against the repo it runs in. A directory that is no
-# repo (a cd that fails, a variable such as $REPO, which is not expanded) falls back to the session's start directory
-# (CLAUDE_PROJECT_DIR).
+# repo falls back to the hook's own directory, then to the session's start directory (CLAUDE_PROJECT_DIR): a cd that
+# fails, a variable such as $REPO (not expanded), or a PostToolUse hook, which already runs where the command's cd took
+# it (replaying cd .. from there overshoots).
 first_word() {
   printf '%s' "$1" | sed -nE \
     -e 's/^[[:space:]]*"([^"]*)".*/\1/p;t' \
@@ -74,6 +75,7 @@ git_commands() {
   printf '%s\n' "$1" | awk '{ line = line $0 } sub(/\\$/, " ", line) { next }
     { gsub(/&&|\|\||;|\|/, "\n", line); print line; line = "" } END { if (line != "") print line }' | {
     base=$(pwd)
+    here=$base
     while IFS= read -r seg; do
       # Only lines that can matter cost a process (hooks have a timeout; a heredoc can be hundreds of lines).
       # (Words, not letters: "through" or "right" in a commit message must not cost a process per line.)
@@ -95,6 +97,7 @@ git_commands() {
         seg=$(printf '%s' "$seg" | sed -E "s/(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1/")
       done
       case $seg in *git* | *"gh pr"*) ;; *) continue ;; esac
+      git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || dir=$here
       git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || [ -z "$CLAUDE_PROJECT_DIR" ] || dir=$CLAUDE_PROJECT_DIR
       printf '%s\t%s\n' "$dir" "$seg"
     done

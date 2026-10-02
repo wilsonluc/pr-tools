@@ -25,7 +25,7 @@ trigger 1 'echo pushed'
 # calls <expected lines> <command>: git_commands, with directories relative to a scratch tree (a/ and "b c"/).
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
-mkdir -p "$root/a" "$root/b c"
+git init -q "$root/a" && git init -q "$root/b c" # repos, so no fallback applies
 calls() {
   got=$(cd "$root" && CLAUDE_PROJECT_DIR='' git_commands "$2" | sed "s|$root|R|; s|$(printf '\t')| ~ |")
   [ "$got" = "$1" ] || { echo "FAIL calls expected '$1' got '$got': $2"; fails=$((fails + 1)); }
@@ -40,6 +40,12 @@ calls 'R/a ~ git push' 'cd a && npm test && git push' # lines without git, cd or
 calls 'R ~ git push' 'cd nowhere && git push'
 calls 'R/a ~ git commit -m x
 R/a ~ git push' "$(printf 'cd a\ngit commit -m x\ngit push')"
+# After the command (PostToolUse) the hook is already where cd .. took it: replayed, cd .. overshoots to no repo,
+# so the hook's own directory is used (review of pr-tools #3).
+git init -q "$root/r"
+mkdir -p "$root/r/sub"
+got=$(cd "$root/r" && CLAUDE_PROJECT_DIR='' git_commands 'cd .. && git push' | sed "s|$root|R|; s|$(printf '\t')| ~ |")
+[ "$got" = 'R/r ~ git push' ] || { echo "FAIL post cd ..: got '$got'"; fails=$((fails + 1)); }
 calls 'R ~ git push origin  HEAD:main' "$(printf 'git push origin \\\nHEAD:main')"
 
 [ "$fails" = 0 ] && echo "trigger: all checks passed" || { echo "trigger: $fails failed"; exit 1; }
