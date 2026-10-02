@@ -36,8 +36,7 @@ calls 'R/a ~ git push -u origin feat' 'git -C a push -u origin feat'
 calls 'R/b c ~ git push' 'git -C "b c" push'
 calls "R ~ git commit -m x
 R/a ~ git status" 'git commit -m x && git -C a status'
-calls 'R/a ~ npm test
-R/a ~ git push' 'cd a && npm test && git push'
+calls 'R/a ~ git push' 'cd a && npm test && git push' # lines without git, cd or gh are skipped
 calls 'R ~ git push' 'cd nowhere && git push'
 calls 'R/a ~ git commit -m x
 R/a ~ git push' "$(printf 'cd a\ngit commit -m x\ngit push')"

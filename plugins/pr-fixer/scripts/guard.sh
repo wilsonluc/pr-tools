@@ -24,6 +24,7 @@ has "$GIT +push( +[^ ]+)* +\+" && block "a + refspec force-pushes; ask the user 
 
 # Per git call, against the repository it runs in (see git_commands): its default branch and current branch. Not
 # simply CLAUDE_PROJECT_DIR, which is where the session started and can be a parent folder.
+case $cmd in *git*) ;; *) exit 0 ;; esac # no git call: nothing below applies
 tab=$(printf '\t')
 calls=$(git_commands "$raw") # lines split commands too
 while IFS=$tab read -r dir seg; do

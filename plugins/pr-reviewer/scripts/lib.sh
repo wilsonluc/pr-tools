@@ -73,6 +73,8 @@ git_commands() {
   printf '%s\n' "$1" | awk '{ gsub(/&&|\|\||;|\|/, "\n"); print }' | {
     base=$(pwd)
     while IFS= read -r seg; do
+      # Only lines that can matter cost a process (hooks have a timeout; a heredoc can be hundreds of lines).
+      case $seg in *git* | *cd* | *gh*) ;; *) continue ;; esac
       seg=$(printf '%s' "$seg" | sed -E 's/^[[:space:](]+//; s/[[:space:])]+$//')
       [ -n "$seg" ] || continue
       case $seg in
@@ -87,6 +89,7 @@ git_commands() {
         dir=$(resolve_dir "$base" "$(first_word "$c")")
         seg=$(printf '%s' "$seg" | sed -E "s/(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1/")
       fi
+      case $seg in *git* | *gh*) ;; *) continue ;; esac
       git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || [ -z "$CLAUDE_PROJECT_DIR" ] || dir=$CLAUDE_PROJECT_DIR
       printf '%s\t%s\n' "$dir" "$seg"
     done
