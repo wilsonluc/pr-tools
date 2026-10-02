@@ -9,13 +9,13 @@
   "plugins": [
     {
       "name": "pr-reviewer",
-      "description": "Reviews each pull request push with a read-only reviewer agent and posts one PR comment and a pr-reviewer commit status. Hands findings to pr-fixer when installed.",
+      "description": "Reviews each pull request push in your session: read-only agents check it against the project's written decisions (including ones fetched from other GitHub repositories) and for bugs, a validator confirms each finding, and one PR comment and a pr-reviewer commit status are posted. Hands findings to pr-fixer when installed.",
       "source": "./plugins/pr-reviewer",
       "category": "development"
     },
     {
       "name": "pr-fixer",
-      "description": "Fixes pull request review findings from any reviewer, capped at 5 rounds in a row, and blocks git commands that bypass the PR flow.",
+      "description": "Fixes pull request review findings from any reviewer: checks each against the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes.",
       "source": "./plugins/pr-fixer",
       "category": "development"
     }

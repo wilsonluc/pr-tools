@@ -2,13 +2,13 @@
 
 Two Claude Code plugins for pull requests, working inside your Claude Code session:
 
-- **pr-reviewer**: reviews each push to a pull request with a read-only reviewer agent, and posts one PR comment
-  and a `pr-reviewer` commit status.
+- **pr-reviewer**: reviews each push to a pull request with read-only agents, one against the project's written
+  decisions (including decision records kept in other GitHub repositories) and one for bugs, confirms each finding
+  with a validator agent, and posts one PR comment and a `pr-reviewer` commit status.
 - **pr-fixer**: fixes review findings (from pr-reviewer, another bot or a person). It checks each finding against
-  the code, fixes the confirmed ones, runs the project's checks and pushes, and it blocks git commands that bypass
-  the pull request flow.
+  the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes.
 
-Together they loop: push → review → fix → push → review, until a review is clean or 5 fix rounds in a row have run.
+Together they loop: push → review → fix → push → review, until a review is clean.
 
 ## What they use
 
@@ -50,19 +50,44 @@ The repository is private, so each person needs read access to it and `gh` (or g
 When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`), it:
 
 1. marks the new head with a `pr-reviewer` commit status: **pending**, shown in the PR merge box;
-2. asks the session to run the `review-pr` skill, which starts the **read-only reviewer agent in the background**;
-3. posts the report as one PR comment (`### PR Reviewer at <sha>`) and sets the status to **success** with a link
+2. asks the session to run the `review-pr` skill, which starts two **read-only reviewer agents in the background**:
+   - **decisions**: weighs the change heavily against the project's written decisions (the review context below,
+     plus `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md` and decision folders such as `docs/adr/`), and reports a
+     finding only with the decision quoted;
+   - **bugs**: works through every kind of input and state the changed code can meet, looks for each mistake
+     everywhere it could recur, and reports only defects it can tie to a concrete failure;
+3. checks each finding with its own **validator agent** and drops the ones it cannot confirm;
+4. posts the report as one PR comment (`### PR Reviewer at <sha>`) and sets the status to **success** with a link
    to it (or **error** if the review failed);
-4. reviews again if new commits landed meanwhile, and hands the findings to pr-fixer when it is installed.
+5. reviews again if new commits landed meanwhile, and hands the findings to pr-fixer when it is installed.
 
 - By hand: `/pr-reviewer:review-pr 42` (no number: the current branch's pull request).
 - Off for a session: start Claude Code with `PR_REVIEWER_OFF=1`.
-- The reviewer (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`: it cannot run commands, change files or
-  talk to GitHub. The skill saves the diff first and posts the report itself. It reports defects it can tie to a
-  concrete failure and skips style.
-- State (saved diffs, reports, the last reviewed head) lives in `.pr-reviewer/` at the repository root, added to
-  `.git/info/exclude` so git ignores it. Claude writes each report there before posting; the
-  `Edit(./.pr-reviewer/**)` allow rule above skips that permission prompt.
+- The reviewer agent (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`: it cannot run commands, change
+  files or talk to GitHub. The skill saves the diff and fetches the review context first, and posts the report
+  itself. Style is skipped.
+- Later reviews cover only what is new: the commits since the last reviewed head, with the previous posted report,
+  kept locally in `.pr-reviewer/`, to check each finding was fixed in every place. A rebase, force push or merge, or
+  a missing previous report, gets a full review. Findings are never taken from PR comments, which anyone can write.
+- State (saved diffs, reports, the last reviewed head, fetched review context) lives in `.pr-reviewer/` at the
+  repository root, added to `.git/info/exclude` so git ignores it. Claude writes each report there before posting;
+  the `Edit(./.pr-reviewer/**)` allow rule above skips that permission prompt.
+
+### Review context
+
+Decision records kept in other GitHub repositories are listed in the repository's `.claude/review-context`, one per
+line, as `owner/repo`, `owner/repo@ref` (a branch or tag) or `owner/repo[@ref]:path` (a folder or file inside it).
+`#` starts a comment:
+
+```
+# Architecture decisions every change here must follow
+acme/architecture:decisions
+acme/platform@v2:docs/adr
+```
+
+`PR_REVIEW_CONTEXT` adds more for a session (separated by spaces or commas). Before each review, `prepare.sh`
+clones each repository with `gh` (shallow, into `.pr-reviewer/context/`) or brings its copy up to date, so `gh`
+needs read access to them. A source it cannot fetch is reported in a note and the review goes on without it.
 
 ## pr-fixer
 
@@ -72,14 +97,12 @@ When Claude pushes a branch that has an open pull request (or opens one with `gh
    pulls on its own);
 2. takes the latest review, checks each finding against the code, and decides **fix**, **skip** (with the reason)
    or **ask** (a decision only you can make: design, agreed behaviour);
-3. fixes the confirmed ones, runs the project's checks, commits `fix: address review of #42` and pushes, which
-   starts the next review.
+3. fixes each confirmed finding everywhere the same mistake occurs, adds a test where the project has tests for
+   that code, runs the project's checks, commits `fix: address review of #42` and pushes, which starts the next
+   review.
 
-It stops after 5 rounds in a row (`PR_FIXER_MAX_ROUNDS`): a round is one `fix: address review of #N` commit, and any
-other commit at the tip of the branch starts the count again.
-
-Its guard hook refuses, for every command Claude runs: pushing or committing to the default branch, force-pushing,
-`--no-verify` / `git commit -n`, and changing `core.hooksPath`.
+There is no round cap. To set one, start Claude Code with `PR_FIXER_MAX_ROUNDS=<n>`: a round is one
+`fix: address review of #N` commit, and any other commit at the tip of the branch starts the count again.
 
 ## Limits
 
@@ -87,17 +110,14 @@ Its guard hook refuses, for every command Claude runs: pushing or committing to 
   Claude Code's hooks; run `/pr-reviewer:review-pr` for those.
 - **The session has to stay open** until a review posts. If it closes first, the status stays pending until the
   next push or a manual run.
-- **The guard only binds Claude.** People can still push to the default branch; use GitHub branch protection for
-  that. Plugins can be disabled, so keep matching `permissions.deny` rules in the repository's
-  `.claude/settings.json` if the guard matters.
-- The guard matches command text, so a commit message that quotes a blocked command (for example `git push origin
-  main`) is refused too. Reword the message.
+- **Nothing here stops a push to the default branch.** Use GitHub branch protection for that.
+- **The review context is read at the version fetched.** Decisions changed after the fetch apply from the next
+  review.
 
 ## Development
 
 ```
-sh plugins/pr-fixer/tests/guard.test.sh        # guard checks in a throwaway repo
-sh plugins/pr-reviewer/tests/trigger.test.sh   # after-push trigger pattern
+sh plugins/pr-reviewer/tests/helpers.test.sh   # trigger pattern, poll, review context (no GitHub needed)
 claude plugin validate --strict .              # marketplace
 claude plugin validate --strict plugins/pr-reviewer
 claude plugin validate --strict plugins/pr-fixer

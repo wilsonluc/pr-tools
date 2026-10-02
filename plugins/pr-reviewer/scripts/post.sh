@@ -1,5 +1,5 @@
 #!/bin/sh
-# review-pr last step: post the reviewer's report as one pull request comment and finish the commit status.
+# review-pr last step: post the review as one pull request comment and finish the commit status.
 #   sh post.sh <pr-number> <reviewed-sha> <report-file>
 # Prints the comment URL, and "head-moved=<sha>" when the pull request moved on during the review.
 . "$(dirname "$0")/lib.sh"
@@ -17,9 +17,12 @@ comment=$({ printf '### PR Reviewer at %s\n\n' "$sha"; cat "$report"; } | gh pr 
 }
 status "$sha" success "Review posted" "$comment"
 d=$(state_dir)
-echo "$sha" >"$d/$pr.reviewed"
+# The next review starts from this one: its report (to check the findings) and its head (to review only what is
+# new). The head only once the report is kept, so the two always belong together.
+cp "$report" "$d/pr-$pr.previous.md" && echo "$sha" >"$d/$pr.reviewed"
+at="$d/pr-$pr-$sha"
+rm -f "$at.diff" "$at.since.diff" "$at.previous.md" "$at.report.md"
 echo "$comment"
-
 
 now=$(gh pr view "$pr" --json headRefOid -q .headRefOid 2>/dev/null)
 [ -z "$now" ] || [ "$now" = "$sha" ] || echo "head-moved=$now"
