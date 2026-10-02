@@ -2,7 +2,7 @@
   "name": "pr-fixer",
   "displayName": "PR Fixer",
   "version": "1.0.0",
-  "description": "Fixes pull request review findings from any reviewer: checks each against the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes.",
+  "description": "Fixes pull request review findings from any reviewer: checks each against the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes, then answers every review conversation: resolves the ones addressed, and replies to the ones it disagrees with, leaving them open.",
   "author": {
     "name": "wilsonluc",
     "url": "https://github.com/wilsonluc"

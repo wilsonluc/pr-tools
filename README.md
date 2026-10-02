@@ -115,7 +115,10 @@ needs read access to them. A source it cannot fetch is reported in a note and th
    or **ask** (a decision only you can make: design, agreed behaviour);
 3. fixes each confirmed finding everywhere the same mistake occurs, adds a test where the project has tests for
    that code, runs the project's checks, commits `fix: address review of #42` and pushes, which starts the next
-   review.
+   review;
+4. answers every open review conversation: **resolves** the ones it fixed (replying with the commit), and replies
+   but leaves **open** the ones it disagrees with or that need your decision. Findings from a plain comment get one
+   reply comment. Resolving needs write access to the repository.
 
 There is no round cap. To set one, start Claude Code with `PR_FIXER_MAX_ROUNDS=<n>`: a round is one
 `fix: address review of #N` commit, and any other commit at the tip of the branch starts the count again.
