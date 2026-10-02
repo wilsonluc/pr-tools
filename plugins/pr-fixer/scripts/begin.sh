@@ -16,7 +16,7 @@ IFS=$tab read -r branch base head url state <<EOF
 $info
 EOF
 max=${PR_FIXER_MAX_ROUNDS:-}
-round=$(($(git log --format=%s -n 50 HEAD 2>/dev/null | awk -v p="fix: address review of #$pr" \
+round=$(($(git log --format=%s HEAD 2>/dev/null | awk -v p="fix: address review of #$pr" \
   'index($0, p) == 1 { n++; next } { exit } END { print n + 0 }') + 1))
 
 echo "pr=$pr"
