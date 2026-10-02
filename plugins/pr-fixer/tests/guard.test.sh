@@ -46,4 +46,20 @@ run 2 main 'git push'
 run 0 main 'git switch -c feat2'
 run 0 main 'git pull'
 
+# From outside the repo: the command's own directory decides (review of pr-tools #3).
+outside() {
+  git -C "$repo" switch -q "$2" 2>/dev/null || git -C "$repo" switch -q -c "$2"
+  json=$(printf '{"tool_name":"Bash","tool_input":{"command":"%s","description":"x"}}' "$3")
+  (cd / && printf '%s' "$json" | sh "$guard" 2>/dev/null)
+  got=$?
+  if [ "$got" != "$1" ]; then
+    echo "FAIL (outside, $2) expected $1 got $got: $3"
+    fails=$((fails + 1))
+  fi
+}
+outside 2 main "git -C $repo commit -m x"
+outside 2 main "cd $repo && git push"
+outside 0 feat "git -C $repo commit -m x"
+outside 0 feat "cd $repo && git push"
+
 [ "$fails" = 0 ] && echo "guard: all checks passed" || { echo "guard: $fails failed"; exit 1; }

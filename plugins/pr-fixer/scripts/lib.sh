@@ -20,3 +20,26 @@ default_branch() {
   b=${b#origin/}
   printf '%s' "${b:-main}"
 }
+
+# The repository a command works in: the directory it names (`cd <dir> && …` at its start, or `git -C <dir>`), else
+# the current one. A PreToolUse hook runs before the command's own `cd`, and the session's directory may be outside the
+# repo (a scratch folder), so the command's own directory wins; with none and no repo here, the session's start
+# directory (CLAUDE_PROJECT_DIR) is the best guess.
+command_dir() {
+  printf '%s' "$1" | sed -nE \
+    -e 's/^[[:space:]]*cd[[:space:]]+"([^"]+)"[[:space:]]*(&&|;).*/\1/p;t' \
+    -e "s/^[[:space:]]*cd[[:space:]]+'([^']+)'[[:space:]]*(&&|;).*/\1/p;t" \
+    -e 's/^[[:space:]]*cd[[:space:]]+([^ ;&|]+)[[:space:]]*(&&|;).*/\1/p;t' \
+    -e 's/.*git[[:space:]]+-C[[:space:]]+"([^"]+)".*/\1/p;t' \
+    -e "s/.*git[[:space:]]+-C[[:space:]]+'([^']+)'.*/\\1/p;t" \
+    -e 's/.*git[[:space:]]+-C[[:space:]]+([^ ;&|]+).*/\1/p' | head -n 1
+}
+
+enter_command_dir() {
+  d=$(command_dir "$1")
+  if [ -n "$d" ]; then
+    cd "$d" 2>/dev/null || true
+  elif ! git rev-parse --git-dir >/dev/null 2>&1 && [ -n "$CLAUDE_PROJECT_DIR" ]; then
+    cd "$CLAUDE_PROJECT_DIR" 2>/dev/null || true
+  fi
+}

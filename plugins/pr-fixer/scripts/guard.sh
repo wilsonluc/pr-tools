@@ -6,8 +6,9 @@
 
 cmd=$(tool_command | tr '\n\t' '  ')
 [ -n "$cmd" ] || exit 0
-# Runs in the session's current directory (the repo Claude is working in). Not CLAUDE_PROJECT_DIR: that is where the
-# session started, which can be a parent folder.
+# The repo the command works in (see enter_command_dir): not simply CLAUDE_PROJECT_DIR, which is where the session
+# started and can be a parent folder.
+enter_command_dir "$cmd"
 main=$(default_branch)
 current=$(git symbolic-ref --short HEAD 2>/dev/null)
 

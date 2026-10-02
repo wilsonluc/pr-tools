@@ -1,7 +1,7 @@
 {
   "name": "pr-fixer",
   "displayName": "PR Fixer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Fixes pull request review findings from any reviewer: checks each against the code, fixes confirmed ones, runs the project's checks and pushes, until a review is clean. Also blocks git commands that bypass the PR flow.",
   "author": {
     "name": "wilsonluc",
