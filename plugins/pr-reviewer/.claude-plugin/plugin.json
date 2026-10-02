@@ -1,7 +1,7 @@
 {
   "name": "pr-reviewer",
   "displayName": "PR Reviewer",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Reviews each pull request push with a read-only reviewer agent and posts one PR comment and a pr-reviewer commit status. Hands findings to pr-fixer when installed.",
   "author": {
     "name": "wilsonluc",

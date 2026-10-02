@@ -60,6 +60,10 @@ When Claude pushes a branch that has an open pull request (or opens one with `gh
 - The reviewer (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`: it cannot run commands, change files or
   talk to GitHub. The skill saves the diff first and posts the report itself. It reports defects it can tie to a
   concrete failure and skips style.
+- Reviews go deep rather than fast: the reviewer works through each kind of input a change can get, looks for the
+  same mistake elsewhere, and reports only once a full pass finds nothing new, so one review takes several minutes
+  and the fix loop needs fewer rounds. It is also given the previous review's findings, to check each was fixed in
+  every similar case; pr-fixer, in turn, fixes each finding's whole class with a test.
 - State (saved diffs, reports, the last reviewed head) lives in `.pr-reviewer/` at the repository root, added to
   `.git/info/exclude` so git ignores it. Claude writes each report there before posting; the
   `Edit(./.pr-reviewer/**)` allow rule above skips that permission prompt.
