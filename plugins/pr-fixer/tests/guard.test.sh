@@ -1,6 +1,6 @@
 #!/bin/sh
-# Checks for scripts/guard.sh and the after-push trigger pattern, in a throwaway repo:
-#   sh plugins/pr-reviewer/tests/guard.test.sh
+# Checks for scripts/guard.sh, in a throwaway repo:
+#   sh plugins/pr-fixer/tests/guard.test.sh
 here=$(cd "$(dirname "$0")" && pwd)
 guard="$here/../scripts/guard.sh"
 repo=$(mktemp -d)

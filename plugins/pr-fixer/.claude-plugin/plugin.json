@@ -1,0 +1,24 @@
+{
+  "name": "pr-fixer",
+  "displayName": "PR Fixer",
+  "version": "0.1.0",
+  "description": "Fixes pull request review findings from any reviewer: checks each against the code, fixes confirmed ones, runs the project's checks and pushes, capped at 5 rounds in a row. Also blocks git commands that bypass the PR flow.",
+  "author": {
+    "name": "wilsonluc",
+    "url": "https://github.com/wilsonluc"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/guard.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

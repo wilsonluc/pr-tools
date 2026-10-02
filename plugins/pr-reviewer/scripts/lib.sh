@@ -21,10 +21,20 @@ default_branch() {
   printf '%s' "${b:-main}"
 }
 
-# Per-clone state (diffs, reports, reviewed heads), kept out of the work tree.
+# Per-checkout state (diffs, reports, reviewed heads) in <repo>/.pr-reviewer/, ignored through .git/info/exclude.
+# Not inside .git: Claude Code refuses file writes there, and the session writes the report. Absolute path (in git's
+# own form, C:/… on Windows), so the reviewer agent can open the files.
 state_dir() {
-  d="$(git rev-parse --git-common-dir)/pr-reviewer"
+  top=$(git rev-parse --show-toplevel) || return 1
+  d="$top/.pr-reviewer"
   mkdir -p "$d"
+  exclude=$(git rev-parse --git-path info/exclude)
+  grep -qx '/.pr-reviewer/' "$exclude" 2>/dev/null || {
+    mkdir -p "$(dirname "$exclude")"
+    # A last line without a newline would otherwise swallow the pattern (and break the user's rule).
+    [ -s "$exclude" ] && [ -n "$(tail -c 1 "$exclude")" ] && echo >>"$exclude"
+    echo '/.pr-reviewer/' >>"$exclude"
+  }
   printf '%s' "$d"
 }
 
@@ -33,4 +43,9 @@ state_dir() {
 status() {
   gh api "repos/{owner}/{repo}/statuses/$1" -f state="$2" -f context=pr-reviewer \
     -f description="$3" ${4:+-f target_url="$4"} >/dev/null 2>&1 || true
+}
+
+# Whether a shell command pushes a branch or opens a pull request (the after-push trigger).
+is_push_command() {
+  printf ' %s ' "$1" | grep -Eq '(^|[;&|( ])(git( +-C +[^ ]+| +-c +[^ ]+)* +push|gh +pr +create)( |$)'
 }

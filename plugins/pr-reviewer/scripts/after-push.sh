@@ -6,7 +6,7 @@
 
 [ -z "$PR_REVIEWER_OFF" ] || exit 0
 cmd=$(tool_command | tr '\n\t' '  ')
-printf ' %s ' "$cmd" | grep -Eq '(^|[;&|( ])(git( +-C +[^ ]+| +-c +[^ ]+)* +push|gh +pr +create)( |$)' || exit 0
+is_push_command "$cmd" || exit 0
 command -v gh >/dev/null 2>&1 || exit 0
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
 branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0

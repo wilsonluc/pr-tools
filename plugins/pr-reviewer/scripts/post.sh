@@ -16,8 +16,10 @@ comment=$({ printf '### PR Reviewer at %s\n\n' "$sha"; cat "$report"; } | gh pr 
   exit 1
 }
 status "$sha" success "Review posted" "$comment"
-echo "$sha" >"$(state_dir)/$pr.reviewed"
+d=$(state_dir)
+echo "$sha" >"$d/$pr.reviewed"
 echo "$comment"
+
 
 now=$(gh pr view "$pr" --json headRefOid -q .headRefOid 2>/dev/null)
 [ -z "$now" ] || [ "$now" = "$sha" ] || echo "head-moved=$now"

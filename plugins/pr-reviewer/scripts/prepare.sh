@@ -14,6 +14,7 @@ EOF
 [ "$state" = OPEN ] || { echo "pull request #$pr is $state, not open" >&2; exit 1; }
 
 d=$(state_dir)
+rm -f "$d/pr-$pr.report.md" # a previous review's report must never be posted for this head
 gh pr diff "$pr" >"$d/pr-$pr.diff" || exit 1
 status "$sha" pending "Review in progress" "$url"
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "pr-reviewer",
-  "description": "Automatic pull request reviews inside your Claude Code session.",
+  "name": "pr-tools",
+  "description": "Pull request review and fix loops inside your Claude Code session.",
   "owner": {
     "name": "wilsonluc",
     "url": "https://github.com/wilsonluc"
@@ -9,8 +9,14 @@
   "plugins": [
     {
       "name": "pr-reviewer",
-      "description": "Reviews each pull request push with a read-only reviewer agent, posts one PR comment and a pr-reviewer commit status, and blocks git commands that bypass the PR flow.",
+      "description": "Reviews each pull request push with a read-only reviewer agent and posts one PR comment and a pr-reviewer commit status. Hands findings to pr-fixer when installed.",
       "source": "./plugins/pr-reviewer",
+      "category": "development"
+    },
+    {
+      "name": "pr-fixer",
+      "description": "Fixes pull request review findings from any reviewer, capped at 5 rounds in a row, and blocks git commands that bypass the PR flow.",
+      "source": "./plugins/pr-fixer",
       "category": "development"
     }
   ]
