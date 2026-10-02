@@ -25,13 +25,13 @@ want=$(git rev-parse HEAD)
 
 # GitHub can take a moment to move the pull request's head after a push.
 pr='' head='' url=''
-for i in 1 2 3 4 5 6; do
-  [ "$i" = 1 ] || sleep 2
+at_head() {
   set -- $(gh pr view "$branch" --json state,number,headRefOid,url \
     -q 'select(.state=="OPEN") | "\(.number) \(.headRefOid) \(.url)"' 2>/dev/null)
   pr=$1 head=$2 url=$3
-  [ "$head" = "$want" ] && break
-done
+  [ "$head" = "$want" ]
+}
+poll "$HOOK_HEAD_WAIT" at_head || true
 [ -n "$pr" ] && [ "$head" = "$want" ] || exit 0 # no open pull request at this commit (yet)
 [ "$(cat "$(state_dir)/$pr.reviewed" 2>/dev/null)" != "$want" ] || exit 0
 

@@ -77,7 +77,7 @@ git -C "$other" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
 run 2 main "git commit -m x && git -C '$other' status"
 run 2 main "git -C '$other' status; git push"
 run 0 main "git -C '$other' commit -m x"
-outside 2 feat "git -C '$repo' status && cd '$other' && git status && cd '$repo' && git push origin main"
+outside 2 main "git -C '$repo' status && cd '$other' && git status && cd '$repo' && git push"
 git -C "$other" switch -q -c main
 run 2 feat "git -C '$other' push"
 run 2 feat "git -C '$other' push origin main"
@@ -91,7 +91,8 @@ outside 2 main "cd $repo\\ngit status\\ngit push"
 outside 0 feat "cd $repo\\ngit commit -m x\\ngit push"
 # Several -C, each relative to the one before (review of pr-tools #3).
 outside 2 main "git -C $(dirname "$repo") -C $(basename "$repo") commit -m x"
-outside 2 feat "git -C / -C $repo push origin main"
+outside 2 main "git -C / -C $repo commit -m x"
+outside 0 feat "git -C / -C $repo commit -m x"
 outside 0 feat "git -C $(dirname "$repo") -C $(basename "$repo") commit -m x"
 # A backslash continues the line: still one push (review of pr-tools #3).
 run 2 feat "git push origin \\\\\\nHEAD:main"

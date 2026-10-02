@@ -54,4 +54,24 @@ mkdir -p "$root/git" && git init -q "$root/git/app"
 calls 'R/git/app ~ git push' 'git -C git -C app push' # a -C path that is itself named git
 calls 'R ~ git push origin HEAD:main' "$(printf 'git push origin \\\nHEAD:main')"
 
+# tool_command without jq or node: the command's own text, unescaped (functions shadow the tools for command -v).
+got=$(
+  jq() { return 1; }
+  node() { return 1; }
+  printf '%s' '{"session_id":"s","tool_name":"Bash","tool_input":{"command":"cd /r \u0026\u0026 x\ngit commit -m \"a b\"","description":"d"}}' |
+    tool_command
+)
+want=$(printf 'cd /r \\u0026\\u0026 x\ngit commit -m "a b"')
+[ "$got" = "$want" ] || { echo "FAIL tool_command fallback: got '$got'"; fails=$((fails + 1)); }
+
+# poll: retries until the check succeeds, keeps the variables it sets, and gives up when the time is up.
+POLL=0
+tries=0
+third() { tries=$((tries + 1)); [ "$tries" -ge 3 ]; }
+poll 5 third && [ "$tries" = 3 ] || { echo "FAIL poll: expected success on try 3, got $tries tries"; fails=$((fails + 1)); }
+never() { false; }
+start=$(date +%s)
+if poll 1 never; then echo "FAIL poll: a check that never succeeds succeeded"; fails=$((fails + 1)); fi
+[ $(($(date +%s) - start)) -le 3 ] || { echo "FAIL poll: did not stop after its time"; fails=$((fails + 1)); }
+
 [ "$fails" = 0 ] && echo "trigger: all checks passed" || { echo "trigger: $fails failed"; exit 1; }

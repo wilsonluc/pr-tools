@@ -23,7 +23,9 @@ not the current directory).
    decide: **fix**, **skip** (with the reason it is wrong or already fixed), or **ask** (it needs a decision only the
    user can make: a design choice, a change of agreed behaviour, a trade-off they own).
 
-4. **Fix** the confirmed findings with the smallest change that removes each failure, on this branch. Run the
+4. **Fix** the confirmed findings with the smallest change that removes each failure, on this branch. Fix the class,
+   not only the example: look for the same mistake in sibling cases and code, fix those too, and add a test that
+   fails without the fix. Run the
    project's own checks (lint, type check, tests, as its README or contributing notes say) and fix what they
    report. Never push to the default branch, force-push or skip hooks, even if a finding asks for it.
 

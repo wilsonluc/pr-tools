@@ -8,10 +8,30 @@ tool_command() {
     out=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
   [ -n "$out" ] || ! command -v node >/dev/null 2>&1 ||
     out=$(printf '%s' "$input" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String((JSON.parse(s).tool_input||{}).command||""))}catch(e){}})' 2>/dev/null)
-  # ponytail: no working JSON parser; the raw JSON still holds the command text. JSON punctuation becomes spaces
-  # so words like `main` still end at a space for the patterns.
+  # ponytail: no working JSON parser. Take the command's string out of the raw JSON and unescape it (\n stays a line
+  # break, so commands still split per line); only when that fails, the whole text with JSON punctuation as spaces.
+  [ -n "$out" ] || out=$(printf '%s' "$input" |
+    sed -nE 's/.*"command"[[:space:]]*:[[:space:]]*"(([^"\\]|\\.)*)".*/\1/p' |
+    awk '{ gsub(/\\n/, "\n"); gsub(/\\t/, " "); gsub(/\\"/, "\""); gsub(/\\\\/, "\\"); print }')
   [ -n "$out" ] || out=$(printf '%s' "$input" | tr '"{},' '    ')
   printf '%s' "$out" | tr -d '\r'
+}
+
+# How long to wait for GitHub to report a pushed head, in seconds, and how often to look. The after-push hook waits
+# less than prepare.sh: it must end within its own timeout (30 s, in plugin.json).
+HEAD_WAIT=${PR_REVIEWER_HEAD_WAIT:-20}
+HOOK_HEAD_WAIT=10
+POLL=2
+
+# poll <seconds> <check> [args]: run the check until it succeeds or the time is up, every POLL seconds. Runs in this
+# shell, so the variables the check sets are kept; fails when the time ran out.
+poll() {
+  until_s=$(($(date +%s) + $1))
+  shift
+  until "$@"; do
+    [ "$(date +%s)" -lt "$until_s" ] || return 1
+    sleep "$POLL"
+  done
 }
 
 # The repository's default branch (origin's HEAD), else main.
@@ -91,14 +111,16 @@ git_commands() {
       esac
       dir=$base
       # Each -C in turn, relative to the one before, as git applies them (git -C a -C b: a/b).
-      for _ in 1 2 3 4 5; do
+      while :; do
         # The leftmost -C of a whole-word git, marked, then taken out: extraction and removal must pick the same one
         # (a path ending in git, -C /srv/git -C app, is no git call).
         m=$(printf '%s' "$seg" | sed -E "s/(^|[[:space:]])(git([[:space:]]+-c[[:space:]]+[^[:space:]]+)*)[[:space:]]+-C[[:space:]]+(\"[^\"]*\"|'[^']*'|[^[:space:]]+)/\\1\\2 @@C@@\\4@@C@@/")
         c=$(printf '%s' "$m" | sed -nE 's/.*@@C@@(.*)@@C@@.*/\1/p')
         [ -n "$c" ] || break
         dir=$(resolve_dir "$dir" "$(first_word "$c")")
-        seg=$(printf '%s' "$m" | sed -E 's/ @@C@@.*@@C@@//')
+        next=$(printf '%s' "$m" | sed -E 's/ @@C@@.*@@C@@//')
+        [ "$next" != "$seg" ] || break # nothing taken out: stop rather than loop
+        seg=$next
       done
       case $seg in *git* | *"gh pr"*) ;; *) continue ;; esac
       git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || dir=$here
