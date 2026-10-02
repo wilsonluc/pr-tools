@@ -37,6 +37,7 @@ done
 
 status "$want" pending "Review queued" "$url"
 # The repository the push ran in, which can differ from the session's directory: the skill runs its scripts there.
-repo=$(pwd | sed 's/\\/\\\\/g; s/"/\\"/g')
+# In git's own form (C:/… on Windows), which every shell's cd takes; an MSYS /c/… path fails in PowerShell.
+repo=$(git rev-parse --show-toplevel | sed 's/\\/\\\\/g; s/"/\\"/g')
 printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"%s"}}\n' \
   "PR Reviewer: pull request #$pr ($url), in the repository at $repo, is now at $want, which has not been reviewed. Run the pr-reviewer:review-pr skill for #$pr in that repository. Its reviewer runs in the background, so carry on with your task meanwhile."

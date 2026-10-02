@@ -70,7 +70,9 @@ resolve_dir() {
   (cd "$1" 2>/dev/null && cd "$d" 2>/dev/null && pwd) || printf '%s' "$1"
 }
 git_commands() {
-  printf '%s\n' "$1" | awk '{ gsub(/&&|\|\||;|\|/, "\n"); print }' | {
+  # A line ending in \ continues on the next (git push origin \ / HEAD:main is one command).
+  printf '%s\n' "$1" | awk '{ line = line $0 } sub(/\\$/, " ", line) { next }
+    { gsub(/&&|\|\||;|\|/, "\n", line); print line; line = "" } END { if (line != "") print line }' | {
     base=$(pwd)
     while IFS= read -r seg; do
       # Only lines that can matter cost a process (hooks have a timeout; a heredoc can be hundreds of lines).

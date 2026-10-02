@@ -40,5 +40,6 @@ calls 'R/a ~ git push' 'cd a && npm test && git push' # lines without git, cd or
 calls 'R ~ git push' 'cd nowhere && git push'
 calls 'R/a ~ git commit -m x
 R/a ~ git push' "$(printf 'cd a\ngit commit -m x\ngit push')"
+calls 'R ~ git push origin  HEAD:main' "$(printf 'git push origin \\\nHEAD:main')"
 
 [ "$fails" = 0 ] && echo "trigger: all checks passed" || { echo "trigger: $fails failed"; exit 1; }

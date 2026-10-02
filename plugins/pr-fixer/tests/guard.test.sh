@@ -89,5 +89,8 @@ rm -rf "$(dirname "$other")"
 outside 2 main "cd $repo\\ngit commit -m x"
 outside 2 main "cd $repo\\ngit status\\ngit push"
 outside 0 feat "cd $repo\\ngit commit -m x\\ngit push"
+# A backslash continues the line: still one push (review of pr-tools #3).
+run 2 feat "git push origin \\\\\\nHEAD:main"
+run 0 feat "git push origin \\\\\\nfeat"
 
 [ "$fails" = 0 ] && echo "guard: all checks passed" || { echo "guard: $fails failed"; exit 1; }
