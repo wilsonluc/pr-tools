@@ -4,12 +4,12 @@
 # --full reviews the whole pull request afresh: no earlier review is used, and a head already reviewed is reviewed
 # again.
 # Prints key=value lines: pr, sha, base, url, title, draft, bot (opened by a bot), blob (the head's files on GitHub,
-# for links), diff, report, inline (where the inline comments go), and body when the pull request has a description;
-# standards (the plugin's own standards, every review checks them); a guide line per CLAUDE.md, AGENTS.md or
-# STANDARDS.md at the root or above a changed file; reviewed=yes when this head was already reviewed; after an
-# earlier review previous (that review's report) and, when the head only added the pull request's own commits since,
-# since and since_diff; for each decision source fetched (.claude/review-context, PR_REVIEW_CONTEXT) a context line
-# and, when known, a context_link line; and sometimes note.
+# for links), diff, report, inline (where the inline comments go), body when the pull request has a description, and
+# issues when it closes issues (their text); standards (the plugin's own standards, every review checks them); a
+# guide line per CLAUDE.md, AGENTS.md or STANDARDS.md at the root or above a changed file; reviewed=yes when this head
+# was already reviewed; after an earlier review previous (that review's report) and, when the head only added the pull
+# request's own commits since, since and since_diff; for each decision source fetched (.claude/review-context,
+# PR_REVIEW_CONTEXT) a context line and, when known, a context_link line; and sometimes note.
 . "$(dirname "$0")/lib.sh"
 
 usage='usage: prepare.sh <pr-number> [--comment] [--full]'
@@ -46,9 +46,14 @@ d=$(state_dir)
 # Files per head, so a review of an older head still running is never overwritten; post.sh removes them.
 at="$d/pr-$pr-$sha"
 # An earlier attempt's files must never be used for this one.
-rm -f "$at.report.md" "$at.inline.json" "$at.since.diff" "$at.previous.md" "$at.body.md"
+rm -f "$at.report.md" "$at.inline.json" "$at.since.diff" "$at.previous.md" "$at.body.md" "$at.issues.md"
 gh pr diff "$pr" >"$at.diff" || exit 1
 gh pr view "$pr" --json body -q .body >"$at.body.md" 2>/dev/null || rm -f "$at.body.md"
+# The issues the pull request closes say what it was asked to do. By address, since one can live in another repository.
+gh pr view "$pr" --json closingIssuesReferences -q '.closingIssuesReferences[].url' 2>/dev/null |
+  while IFS= read -r issue; do
+    gh issue view "$issue" --json number,title,url,body -q '"## #\(.number): \(.title)\n\n\(.url)\n\n\(.body)\n"'
+  done >"$at.issues.md" 2>/dev/null
 last=$(cat "$d/$pr.reviewed" 2>/dev/null)
 [ -z "$full" ] || last='' # as if never reviewed
 # The skill stops for a draft or a head already reviewed without posting, so neither may be marked pending.
@@ -70,6 +75,7 @@ echo "inline=$at.inline.json"
 echo "standards=$(cd "$(dirname "$0")/.." && { pwd -W 2>/dev/null || pwd; })/standards.md"
 # The description is the author's intent: data for the reviewers, in a file since it spans lines.
 [ -s "$at.body.md" ] && [ -n "$(tr -d '[:space:]' <"$at.body.md")" ] && echo "body=$at.body.md"
+[ -s "$at.issues.md" ] && echo "issues=$at.issues.md"
 
 # A later review covers only what is new: the commits since the last reviewed head, when they are all the pull
 # request's own (a rebase, force push or merge gets a full review), and only with that review's report to carry its
