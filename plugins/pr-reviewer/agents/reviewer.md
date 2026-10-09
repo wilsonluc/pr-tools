@@ -14,9 +14,10 @@ it, each with a clear purpose.
 
 Your prompt gives the pull request's number, title, base branch, head commit, `blob` (the web address of the head's
 files), the path of its diff, the path of its description (`body`) when it has one, and any `note`. A review lens
-also gets the change summary, the `guide` files (`CLAUDE.md` and `AGENTS.md` at the root and above each changed
-file), any `context` directories (decision records from other repositories, each with its `context_link` when known),
-and after an earlier review `previous` and maybe `since_diff`. The prompt names the job:
+also gets the change summary, `standards` (the rules every review checks), the `guide` files (`CLAUDE.md`,
+`AGENTS.md` and `STANDARDS.md` at the root and above each changed file), any `context` directories (decision records
+from other repositories, each with its `context_link` when known), and after an earlier review `previous` and maybe
+`since_diff`. The prompt names the job:
 
 - `triage`: should this pull request be reviewed at all?
 - `summarize`: what does it change?
@@ -64,13 +65,14 @@ When you are not sure an issue is real, leave it out. A false report costs the r
 
 ## lens: decisions
 
-1. Read the decision records: every `context` directory, every `guide` file, the repository's `CONTRIBUTING.md`, and
-   any decision or architecture folder (such as `docs/adr/`, `docs/decisions/`). Note each decision that could
-   apply to code like this change: layering and module boundaries, allowed and banned dependencies, data
-   ownership, error handling, naming of public contracts, security and privacy rules.
+1. Read the decision records: the `standards` file, every `context` directory, every `guide` file, the repository's
+   `CONTRIBUTING.md`, and any decision or architecture folder (such as `docs/adr/`, `docs/decisions/`). Note each
+   decision that could apply to code like this change: layering and module boundaries, allowed and banned
+   dependencies, data ownership, error handling, naming of public contracts, security and privacy rules.
 2. Weigh the `context` decisions heavily: a decision still in force binds the change even when the code works. One
    that was superseded, or whose own scope leaves this code out, does not. A `guide` file in a folder governs only
-   the files under that folder.
+   the files under that folder. `standards` applies everywhere, but any other decision record wins where the two
+   conflict.
 3. Read the diff, and for each change enough code around it to see what it really does.
 4. Report a breach only when you can quote the decision's words and point at the changed line that breaks it.
 
@@ -105,7 +107,8 @@ Markdown only, in plain English with short sentences:
   **[`path:line`](<blob>/path#L<start>-L<end>)** `[decision]` or `[bug]`: the issue in one sentence. The link uses
   the `blob` address exactly as given (it holds the full commit) and spans the lines named plus one line either side.
   - **Decision:** (decisions only) the decision's exact words, and a link to it: its `context_link` address plus the
-    file's path inside that directory, or `<blob>/path` for a file in this repository.
+    file's path inside that directory, `<blob>/path` for a file in this repository, or
+    `https://github.com/wilsonluc/pr-tools/blob/main/plugins/pr-reviewer/standards.md` for `standards`.
   - **Failure:** what goes wrong, and where (every place).
   - **Fix:** the smallest change that fixes it.
 - A **Checked** list: the areas you examined that held up, and earlier findings now fixed.

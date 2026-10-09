@@ -14,10 +14,10 @@ tool_command() {
   printf '%s' "$out" | tr -d '\r'
 }
 
-# Whether a shell command pushes a branch or opens a pull request (the after-push trigger). Best effort: a push
+# Whether a shell command pushes a branch, opens a pull request or marks one ready for review (the after-push trigger). Best effort: a push
 # written another way just gets no automatic review (run /pr-reviewer:review-pr).
 is_push_command() {
-  printf ' %s ' "$1" | tr '\n' ' ' | grep -Eq '(^|[;&|( ])(git( +-[cC] +[^ ]+)* +push|gh +pr +create)( |$)'
+  printf ' %s ' "$1" | tr '\n' ' ' | grep -Eq '(^|[;&|( ])(git( +-[cC] +[^ ]+)* +push|gh +pr +(create|ready))( |$)'
 }
 
 # The repository's default branch (origin's HEAD), else main.
@@ -68,13 +68,13 @@ status() {
     -f description="$3" ${4:+-f target_url="$4"} >/dev/null 2>&1 || true
 }
 
-# guide_files <repo root>: the CLAUDE.md and AGENTS.md files that cover the paths read from stdin (one per line,
+# guide_files <repo root>: the CLAUDE.md, AGENTS.md and STANDARDS.md files that cover the paths read from stdin (one per line,
 # relative to the root): the root's own, and those in each path's folder and its parents. Absolute paths, each once.
 guide_files() {
   { echo .; tr -d '\r'; } | while IFS= read -r f; do
     dir=$(dirname "$f")
     while :; do
-      for g in CLAUDE.md AGENTS.md; do [ -f "$1/$dir/$g" ] && echo "$dir/$g"; done
+      for g in CLAUDE.md AGENTS.md STANDARDS.md; do [ -f "$1/$dir/$g" ] && echo "$dir/$g"; done
       [ "$dir" = . ] || [ "$dir" = / ] && break
       dir=$(dirname "$dir")
     done

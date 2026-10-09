@@ -1,5 +1,5 @@
 #!/bin/sh
-# PostToolUse (Bash, PowerShell): after a push or `gh pr create`, tell the session when the branch's open pull
+# PostToolUse (Bash, PowerShell): after a push, `gh pr create` or `gh pr ready`, tell the session when the branch's open pull
 # request is at a head that has not been reviewed yet. The session then runs the review-pr skill. Draft pull
 # requests and ones opened by bots are left alone (run /pr-reviewer:review-pr for those).
 # Opt out: PR_REVIEWER_OFF=1.

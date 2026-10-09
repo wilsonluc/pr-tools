@@ -48,19 +48,21 @@ The repository is private, so each person needs read access to it and `gh` (or g
 
 ## pr-reviewer
 
-When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`), it skips drafts and
-pull requests opened by bots, and otherwise marks the new head with a **pending** `pr-reviewer` commit status and
-asks the session to run `review-pr` with `--comment`. The skill stops if the pull request is closed, a draft, or
-this head was already reviewed; otherwise it starts one **orchestrator** agent in the background, and the session
-carries on. The orchestrator starts every other agent itself (all read-only) and hands back only the final review:
+When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`, or marks a draft ready
+with `gh pr ready`), it skips drafts and pull requests opened by bots, and otherwise marks the new head with a
+**pending** `pr-reviewer` commit status and asks the session to run `review-pr` with `--comment`. The skill stops if
+the pull request is closed, a draft, or this head was already reviewed; otherwise it starts one **orchestrator**
+agent in the background, and the session carries on. The orchestrator starts every other agent itself (all
+read-only) and hands back only the final review:
 
 1. a **triage** agent (Haiku) stops the review for automated or trivial, plainly correct changes, and a **summary**
    agent (Sonnet) describes the change;
 2. four reviewers run at once, each given the title, description and summary:
    - two **decisions** reviewers (Sonnet), working independently: they weigh the change heavily against the
-     project's written decisions (the review context below, `CONTRIBUTING.md`, decision folders such as
-     `docs/adr/`, and the `CLAUDE.md` and `AGENTS.md` files at the root and above each changed file, each governing
-     only its own folder), and report a breach only with the decision quoted and linked;
+     project's written decisions (the plugin's [standards](#standards), the review context below,
+     `CONTRIBUTING.md`, decision folders such as `docs/adr/`, and the `CLAUDE.md`, `AGENTS.md` and `STANDARDS.md`
+     files at the root and above each changed file, each governing only its own folder), and report a breach only
+     with the decision quoted and linked;
    - a **diff bugs** reviewer (Opus): significant bugs visible from the diff alone;
    - a **code bugs** reviewer (Opus): wrong logic and security holes in the code the change introduces;
 3. each finding gets its own **validator** (Opus for bugs, Sonnet for decisions), and any it cannot confirm is
@@ -89,6 +91,15 @@ aside on purpose.
 - State (saved diffs, reports, the last reviewed head, fetched review context) lives in `.pr-reviewer/` at the
   repository root, added to `.git/info/exclude` so git ignores it. Claude writes each report there before posting;
   the `Edit(./.pr-reviewer/**)` allow rule above skips that permission prompt.
+
+### Standards
+
+Every review checks the change against [`plugins/pr-reviewer/standards.md`](plugins/pr-reviewer/standards.md), in
+every repository: DRY, YAGNI, failing loud (timeouts included), validating and bounding outside input, concurrency
+and resources, secrets, security (cryptography and personal data included), versioned contracts (database migrations
+included), tests, magic values, dependencies, comments, dead code and stale docs, and measuring before optimizing.
+The repository's own decisions add rules and win where they conflict, so a `STANDARDS.md` at its root can relax or
+replace any of them.
 
 ### Review context
 
