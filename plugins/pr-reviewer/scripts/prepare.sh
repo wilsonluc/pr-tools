@@ -5,10 +5,11 @@
 # again.
 # Prints key=value lines: pr, sha, base, url, title, draft, bot (opened by a bot), blob (the head's files on GitHub,
 # for links), diff, report, inline (where the inline comments go), and body when the pull request has a description;
-# a guide line per CLAUDE.md, AGENTS.md or STANDARDS.md at the root or above a changed file; reviewed=yes when this head was already
-# reviewed; after an earlier review previous (that review's report) and, when the head only added the pull request's
-# own commits since, since and since_diff; for each decision source fetched (.claude/review-context,
-# PR_REVIEW_CONTEXT) a context line and, when known, a context_link line; and sometimes note.
+# standards (the plugin's own standards, every review checks them); a guide line per CLAUDE.md, AGENTS.md or
+# STANDARDS.md at the root or above a changed file; reviewed=yes when this head was already reviewed; after an
+# earlier review previous (that review's report) and, when the head only added the pull request's own commits since,
+# since and since_diff; for each decision source fetched (.claude/review-context, PR_REVIEW_CONTEXT) a context line
+# and, when known, a context_link line; and sometimes note.
 . "$(dirname "$0")/lib.sh"
 
 usage='usage: prepare.sh <pr-number> [--comment] [--full]'
@@ -65,6 +66,8 @@ echo "blob=${url%/pull/*}/blob/$sha"
 echo "diff=$at.diff"
 echo "report=$at.report.md"
 echo "inline=$at.inline.json"
+# Absolute, in C:/… form on Windows, so the reviewer agents can open it.
+echo "standards=$(cd "$(dirname "$0")/.." && { pwd -W 2>/dev/null || pwd; })/standards.md"
 # The description is the author's intent: data for the reviewers, in a file since it spans lines.
 [ -s "$at.body.md" ] && [ -n "$(tr -d '[:space:]' <"$at.body.md")" ] && echo "body=$at.body.md"
 
