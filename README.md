@@ -2,10 +2,10 @@
 
 Two Claude Code plugins for pull requests, working inside your Claude Code session:
 
-- **pr-reviewer**: reviews each push to a pull request with read-only agents, two against the project's written
-  decisions and guidelines (including decision records kept in other GitHub repositories) and two for bugs,
-  confirms each finding with a validator agent, and posts a PR comment, inline comments and a `pr-reviewer` commit
-  status.
+- **pr-reviewer**: reviews each push to a pull request with read-only agents: one against what the linked issues,
+  spec and description ask for, two against the project's written decisions and guidelines (including decision
+  records kept in other GitHub repositories) and two for bugs. It confirms each finding with a validator agent, and
+  posts a PR comment with a walkthrough, inline comments and a `pr-reviewer` commit status.
 - **pr-fixer**: fixes review findings (from pr-reviewer, another bot or a person). It checks each finding against
   the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes.
 
@@ -56,8 +56,12 @@ agent in the background, and the session carries on. The orchestrator starts eve
 read-only) and hands back only the final review:
 
 1. a **triage** agent (Haiku) stops the review for automated or trivial, plainly correct changes, and a **summary**
-   agent (Sonnet) describes the change;
-2. four reviewers run at once, each given the title, description and summary:
+   agent (Sonnet) writes the walkthrough: what the change does and a table of the changed files;
+2. the reviewers run at once, each given the title, description, linked issues and walkthrough:
+   - an **intent** reviewer (Sonnet), when the pull request has a description or closes issues: it reads them and any
+     spec or design file in the repository they link, and reports a request the change does not carry out, a change
+     a stated non-goal rules out, or a claim in the description the diff does not back, each with the request
+     quoted;
    - two **decisions** reviewers (Sonnet), working independently: they weigh the change heavily against the
      project's written decisions (the plugin's [standards](#standards), the review context below,
      `CONTRIBUTING.md`, decision folders such as `docs/adr/`, and the `CLAUDE.md`, `AGENTS.md` and `STANDARDS.md`
@@ -65,26 +69,28 @@ read-only) and hands back only the final review:
      with the decision quoted and linked;
    - a **diff bugs** reviewer (Opus): significant bugs visible from the diff alone;
    - a **code bugs** reviewer (Opus): wrong logic and security holes in the code the change introduces;
-3. each finding gets its own **validator** (Opus for bugs, Sonnet for decisions), and any it cannot confirm is
-   dropped;
-4. the session posts the report as one PR comment (`### PR Reviewer at <sha>`), each finding linked to its lines
-   at that commit, plus one inline comment per finding (with a GitHub suggestion when a small fix settles it), and
-   sets the status to **success** with a link to it (or **error** if the review failed);
+3. each finding gets its own **validator** (Opus for bugs, Sonnet for decisions and intent), and any it cannot
+   confirm is dropped;
+4. the session posts the report as one PR comment (`### PR Reviewer at <sha>`): the walkthrough, folded, then each
+   finding linked to its lines at that commit. It adds one inline comment per finding (with a GitHub suggestion
+   when a small fix settles it), and sets the status to **success** with a link to it (or **error** if the review
+   failed);
 5. the session reviews again if new commits landed meanwhile, and hands the findings to pr-fixer when it is installed.
 
 Reviewers report only what is certain and matters: code that will not build or load, logic wrong whatever the
-input, and clear breaches of a written decision. Never: style, problems that need a particular input to show up,
-problems the code already had, what linters catch, general quality no decision asks for, and rules the code sets
-aside on purpose.
+input, clear breaches of a written decision, and clear misses of what the issues, spec or description ask. Never:
+style, problems that need a particular input to show up, problems the code already had, what linters catch, general
+quality no decision asks for, and rules the code sets aside on purpose.
 
 - By hand: `/pr-reviewer:review-pr 42` prints the review in the session and posts nothing; add `--comment` to post
   it (no number: the current branch's pull request). Add `--full` to review the whole pull request afresh, even a
   head already reviewed, instead of only what is new since the last review.
 - Off for a session: start Claude Code with `PR_REVIEWER_OFF=1`.
 - The reviewer agent (`agents/reviewer.md`) has only `Read`, `Grep` and `Glob`, and the orchestrator
-  (`agents/orchestrator.md`) only those plus `Agent`: neither can run commands, change files or talk to GitHub. The skill saves the diff and description, finds the guideline files and fetches the
-  review context first, and posts the report itself. If GitHub refuses the inline comments (a line outside the
-  diff), the report comment still holds every finding.
+  (`agents/orchestrator.md`) only those plus `Agent`: neither can run commands, change files or talk to GitHub. The
+  skill saves the diff, description and linked issues, finds the guideline files and fetches the review context
+  first, and posts the report itself. If GitHub refuses the inline comments (a line outside the diff), the report
+  comment still holds every finding.
 - Later reviews cover only what is new: the commits since the last reviewed head, with the previous posted report,
   kept locally in `.pr-reviewer/`, to check each finding was fixed in every place. A rebase, force push or merge, or
   a missing previous report, gets a full review. Findings are never taken from PR comments, which anyone can write.

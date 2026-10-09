@@ -14,7 +14,7 @@ at="$d/pr-$pr-$sha"
 if [ "$report" = --skip ]; then
   # A status description holds at most 140 characters.
   status "$sha" success "$(printf 'Review skipped: %s' "$inline" | cut -c 1-140)" "$url"
-  rm -f "$at.diff" "$at.since.diff" "$at.previous.md" "$at.body.md" "$at.report.md" "$at.inline.json"
+  rm -f "$at.diff" "$at.since.diff" "$at.previous.md" "$at.body.md" "$at.issues.md" "$at.report.md" "$at.inline.json"
   exit 0
 fi
 if [ ! -s "$report" ]; then
@@ -36,7 +36,7 @@ status "$sha" success "Review posted" "$comment"
 # The next review starts from this one: its report (to check the findings) and its head (to review only what is
 # new). The head only once the report is kept, so the two always belong together.
 cp "$report" "$d/pr-$pr.previous.md" && echo "$sha" >"$d/$pr.reviewed"
-rm -f "$at.diff" "$at.since.diff" "$at.previous.md" "$at.body.md" "$at.report.md" "$at.inline.json"
+rm -f "$at.diff" "$at.since.diff" "$at.previous.md" "$at.body.md" "$at.issues.md" "$at.report.md" "$at.inline.json"
 echo "$comment"
 
 now=$(gh pr view "$pr" --json headRefOid -q .headRefOid 2>/dev/null)
