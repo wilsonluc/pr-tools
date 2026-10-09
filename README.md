@@ -23,7 +23,7 @@ Together they loop: push → review → fix → push → review, until a review 
 
 ## Install
 
-For yourself:
+Install them once, at user scope, so they apply in every repository you open:
 
 ```
 /plugin marketplace add wilsonluc/pr-tools
@@ -31,20 +31,13 @@ For yourself:
 /plugin install pr-addresser@pr-tools
 ```
 
-For everyone working in a repository, commit this to its `.claude/settings.json`; teammates are offered the plugins
-when they trust the folder:
+Then add this allow rule to `~/.claude/settings.json`, so writing review reports skips the permission prompt:
 
 ```json
 {
-  "extraKnownMarketplaces": {
-    "pr-tools": { "source": { "source": "github", "repo": "wilsonluc/pr-tools" } }
-  },
-  "enabledPlugins": { "pr-reviewer@pr-tools": true, "pr-addresser@pr-tools": true },
   "permissions": { "allow": ["Edit(./.pr-reviewer/**)"] }
 }
 ```
-
-The repository is private, so each person needs read access to it and `gh` (or git) logged in to GitHub.
 
 ## pr-reviewer
 
@@ -97,7 +90,7 @@ quality no decision asks for, and rules the code sets aside on purpose.
   a missing previous report, gets a full review. Findings are never taken from PR comments, which anyone can write.
 - State (saved diffs, reports, the last reviewed head, fetched review context) lives in `.pr-reviewer/` at the
   repository root, added to `.git/info/exclude` so git ignores it. Claude writes each report there before posting;
-  the `Edit(./.pr-reviewer/**)` allow rule above skips that permission prompt.
+  the allow rule under [Install](#install) skips that permission prompt.
 
 ### Standards
 
