@@ -96,7 +96,7 @@ aside on purpose.
 
 Every review checks the change against [`plugins/pr-reviewer/standards.md`](plugins/pr-reviewer/standards.md), in
 every repository: DRY, YAGNI, failing loud (timeouts included), validating and bounding outside input, releasing
-resources and watching background work, secrets, injection, versioned contracts, tests, magic values, dependencies,
+resources and watching background work, secrets, security, versioned contracts, tests, magic values, dependencies,
 comments, dead code and stale docs, and measuring before optimizing. The repository's own decisions add rules and
 win where they conflict, so a `STANDARDS.md` at its root can relax or replace any of them.
 

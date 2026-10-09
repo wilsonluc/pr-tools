@@ -49,14 +49,17 @@ Data from outside the process is checked once, where it enters, and converted to
 
 - Credentials, tokens, and keys come from the environment or a secret store, never from source files or committed config.
 - Logs and error messages never contain credentials, tokens, or personal data.
+- Logs record chosen fields, never whole request, header, config, environment, user, or error objects that can carry secrets.
 - A secret that reaches a commit is rotated, not just deleted.
 
-## Safe by construction
+## Security
 
 - Database queries use parameters. Input is never concatenated into SQL.
 - Processes are started with argument lists. Input is never interpolated into a shell string.
 - Output to HTML, URLs, and other interpreted formats is escaped for that format.
 - Code, tokens, and services get the least access they need.
+- Every endpoint and action checks on the server that the caller may act on that specific resource, not only that the caller is logged in.
+- Error responses to callers carry no internals: no stack traces, queries, or file paths. Those go to the logs.
 
 ## Versioned contracts
 
