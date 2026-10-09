@@ -29,6 +29,7 @@ Errors surface. Nothing fails silently.
 - An error names what failed and the input that caused it.
 - Fall back to a default only when the requirements say the value may legitimately be missing.
 - Retries are explicit, bounded, and logged.
+- Every call that can wait has a timeout: network requests, database queries, subprocesses, and locks.
 
 ## Validate at the boundary
 
@@ -37,6 +38,12 @@ Data from outside the process is checked once, where it enters, and converted to
 - Outside data means requests, files, environment variables, command-line arguments, queues, and responses from other services.
 - Code past the boundary trusts those types and does not check again.
 - A validation failure is rejected with a clear error. It is never passed along half-checked.
+- Work driven by outside data is bounded: input sizes, collection lengths, page sizes, loop counts, and recursion depth have a limit, and queries are paginated or capped.
+
+## Release resources, watch background work
+
+- Files, connections, sockets, and timers are released on every path, errors included: `using`, `with`, `defer`, or `try`/`finally`.
+- Background work is awaited or has an error handler. A task or promise nobody awaits, or an `async void` method, loses its errors.
 
 ## No secrets in code, logs, or commits
 
@@ -77,6 +84,7 @@ Thresholds, timeouts, limits, and tuning values are named constants or config en
 
 - Comments explain why: a constraint, a trade-off, a workaround. The code shows what.
 - Delete dead code, unused parameters, and commented-out blocks. Git keeps history.
+- A change that makes existing docs wrong (README, docs, changelog, comments) updates them in the same pull request.
 
 ## Measure before optimizing
 
