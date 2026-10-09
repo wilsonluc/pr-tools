@@ -50,9 +50,10 @@ The repository is private, so each person needs read access to it and `gh` (or g
 
 When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`, or marks a draft ready
 with `gh pr ready`), it skips drafts and pull requests opened by bots, and otherwise marks the new head with a
-**pending** `pr-reviewer` commit status and asks the session to run `review-pr` with `--comment`. The skill stops if the pull request is closed, a draft, or
-this head was already reviewed; otherwise it starts one **orchestrator** agent in the background, and the session
-carries on. The orchestrator starts every other agent itself (all read-only) and hands back only the final review:
+**pending** `pr-reviewer` commit status and asks the session to run `review-pr` with `--comment`. The skill stops if
+the pull request is closed, a draft, or this head was already reviewed; otherwise it starts one **orchestrator**
+agent in the background, and the session carries on. The orchestrator starts every other agent itself (all
+read-only) and hands back only the final review:
 
 1. a **triage** agent (Haiku) stops the review for automated or trivial, plainly correct changes, and a **summary**
    agent (Sonnet) describes the change;
