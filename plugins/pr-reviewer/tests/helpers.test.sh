@@ -19,9 +19,12 @@ trigger 0 'npm test && git push'
 trigger 0 "git commit -m 'x'
 git push"
 trigger 0 'gh pr create --fill'
+trigger 0 'gh pr ready'
+trigger 0 'gh pr ready 3'
 trigger 1 'git pushd'
 trigger 1 'git status'
 trigger 1 'gh pr view 3'
+trigger 1 'gh pr readyz'
 trigger 1 'echo pushed'
 
 # poll: returns as soon as the check passes, fails once the time is up, keeps the check's variables.
@@ -46,9 +49,9 @@ got=$(cd "$repo" && rm .claude/review-context && PR_REVIEW_CONTEXT='' context_so
 
 # guide_files: the root's and each changed path's folder and parents, once each, CRLF input included.
 mkdir -p "$repo/a/b" "$repo/c"
-touch "$repo/CLAUDE.md" "$repo/a/AGENTS.md" "$repo/a/b/CLAUDE.md" "$repo/c/CLAUDE.md"
+touch "$repo/CLAUDE.md" "$repo/STANDARDS.md" "$repo/a/AGENTS.md" "$repo/a/b/CLAUDE.md" "$repo/a/b/STANDARDS.md" "$repo/c/CLAUDE.md"
 got=$(printf 'a/b/x.sh\r\na/y.sh\nz.md\n' | guide_files "$repo" | tr '\n' ' ')
-want="$repo/CLAUDE.md $repo/a/b/CLAUDE.md $repo/a/AGENTS.md "
+want="$repo/CLAUDE.md $repo/STANDARDS.md $repo/a/b/CLAUDE.md $repo/a/b/STANDARDS.md $repo/a/AGENTS.md "
 [ "$got" = "$want" ] || fail "guide_files gave '$got', not '$want'"
 
 # fetch_context: a local repository stands in for GitHub once cloned; refresh and path handling.

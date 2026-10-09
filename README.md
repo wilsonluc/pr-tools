@@ -48,9 +48,9 @@ The repository is private, so each person needs read access to it and `gh` (or g
 
 ## pr-reviewer
 
-When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`), it skips drafts and
-pull requests opened by bots, and otherwise marks the new head with a **pending** `pr-reviewer` commit status and
-asks the session to run `review-pr` with `--comment`. The skill stops if the pull request is closed, a draft, or
+When Claude pushes a branch that has an open pull request (or opens one with `gh pr create`, or marks a draft ready
+with `gh pr ready`), it skips drafts and pull requests opened by bots, and otherwise marks the new head with a
+**pending** `pr-reviewer` commit status and asks the session to run `review-pr` with `--comment`. The skill stops if the pull request is closed, a draft, or
 this head was already reviewed; otherwise it starts one **orchestrator** agent in the background, and the session
 carries on. The orchestrator starts every other agent itself (all read-only) and hands back only the final review:
 
@@ -59,8 +59,8 @@ carries on. The orchestrator starts every other agent itself (all read-only) and
 2. four reviewers run at once, each given the title, description and summary:
    - two **decisions** reviewers (Sonnet), working independently: they weigh the change heavily against the
      project's written decisions (the review context below, `CONTRIBUTING.md`, decision folders such as
-     `docs/adr/`, and the `CLAUDE.md` and `AGENTS.md` files at the root and above each changed file, each governing
-     only its own folder), and report a breach only with the decision quoted and linked;
+     `docs/adr/`, and the `CLAUDE.md`, `AGENTS.md` and `STANDARDS.md` files at the root and above each changed
+     file, each governing only its own folder), and report a breach only with the decision quoted and linked;
    - a **diff bugs** reviewer (Opus): significant bugs visible from the diff alone;
    - a **code bugs** reviewer (Opus): wrong logic and security holes in the code the change introduces;
 3. each finding gets its own **validator** (Opus for bugs, Sonnet for decisions), and any it cannot confirm is

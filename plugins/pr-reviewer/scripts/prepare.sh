@@ -5,7 +5,7 @@
 # again.
 # Prints key=value lines: pr, sha, base, url, title, draft, bot (opened by a bot), blob (the head's files on GitHub,
 # for links), diff, report, inline (where the inline comments go), and body when the pull request has a description;
-# a guide line per CLAUDE.md or AGENTS.md at the root or above a changed file; reviewed=yes when this head was already
+# a guide line per CLAUDE.md, AGENTS.md or STANDARDS.md at the root or above a changed file; reviewed=yes when this head was already
 # reviewed; after an earlier review previous (that review's report) and, when the head only added the pull request's
 # own commits since, since and since_diff; for each decision source fetched (.claude/review-context,
 # PR_REVIEW_CONTEXT) a context line and, when known, a context_link line; and sometimes note.

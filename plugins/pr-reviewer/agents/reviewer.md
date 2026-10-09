@@ -14,7 +14,7 @@ it, each with a clear purpose.
 
 Your prompt gives the pull request's number, title, base branch, head commit, `blob` (the web address of the head's
 files), the path of its diff, the path of its description (`body`) when it has one, and any `note`. A review lens
-also gets the change summary, the `guide` files (`CLAUDE.md` and `AGENTS.md` at the root and above each changed
+also gets the change summary, the `guide` files (`CLAUDE.md`, `AGENTS.md` and `STANDARDS.md` at the root and above each changed
 file), any `context` directories (decision records from other repositories, each with its `context_link` when known),
 and after an earlier review `previous` and maybe `since_diff`. The prompt names the job:
 
