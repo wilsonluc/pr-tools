@@ -1,0 +1,10 @@
+{
+  "name": "pr-addresser",
+  "displayName": "PR Addresser",
+  "version": "2.0.0",
+  "description": "Addresses a pull request's review conversations from any reviewer, person or bot: checks each finding against the code before acting, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes, then answers every conversation: resolves the ones addressed, and replies to the ones it disagrees with or that need your decision, leaving them open.",
+  "author": {
+    "name": "wilsonluc",
+    "url": "https://github.com/wilsonluc"
+  }
+}

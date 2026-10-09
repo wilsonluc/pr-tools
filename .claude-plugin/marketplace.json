@@ -9,14 +9,14 @@
   "plugins": [
     {
       "name": "pr-reviewer",
-      "description": "Reviews each pull request push in your session: read-only agents, one against what the linked issues, spec and description ask, two against the project's written decisions and guidelines (including ones fetched from other GitHub repositories) and two for bugs, a validator confirms each finding, and a PR comment with a walkthrough, inline comments and a pr-reviewer commit status are posted. Hands findings to pr-fixer when installed.",
+      "description": "Reviews each pull request push in your session: read-only agents, one against what the linked issues, spec and description ask, two against the project's written decisions and guidelines (including ones fetched from other GitHub repositories) and two for bugs, a validator confirms each finding, and a PR comment with a walkthrough, inline comments and a pr-reviewer commit status are posted. Hands findings to pr-addresser when installed.",
       "source": "./plugins/pr-reviewer",
       "category": "development"
     },
     {
-      "name": "pr-fixer",
-      "description": "Fixes pull request review findings from any reviewer: checks each against the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes, then answers every review conversation: resolves the ones addressed, and replies to the ones it disagrees with, leaving them open.",
-      "source": "./plugins/pr-fixer",
+      "name": "pr-addresser",
+      "description": "Addresses a pull request's review conversations from any reviewer, person or bot: checks each finding against the code before acting, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes, then answers every conversation: resolves the ones addressed, and replies to the ones it disagrees with or that need your decision, leaving them open.",
+      "source": "./plugins/pr-addresser",
       "category": "development"
     }
   ]

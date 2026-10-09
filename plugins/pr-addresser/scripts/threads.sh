@@ -1,5 +1,5 @@
 #!/bin/sh
-# fix-pr: the pull request's open review conversations (inline comment threads), one per line:
+# address-pr: the pull request's open review conversations (inline comment threads), one per line:
 #   sh threads.sh <pr-number>
 # thread=<id> comment=<first comment id> at=<path>:<line> by=<login> outdated=<true|false> text=<first comment,
 # on one line, cut at 300 characters>, separated by tabs. Read a full comment with

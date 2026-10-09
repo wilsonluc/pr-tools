@@ -1,9 +1,9 @@
 ---
-name: fix-pr
-description: Fix the findings of a pull request review - from pr-reviewer, another bot, or a person - by checking each one against the code, fixing the confirmed ones, running the project's checks and pushing, then answering every review conversation (resolving the ones addressed, replying and leaving open the ones it disagrees with). Use after a review lists issues, when pr-reviewer hands off, or when the user asks to address review comments. Arguments - the pull request number (default - the current branch's), optionally the review comment's URL.
+name: address-pr
+description: Address the review conversations on a pull request - from pr-reviewer, another bot, or a person - by checking each finding against the code, fixing the confirmed ones, running the project's checks and pushing, then answering every review conversation (resolving the ones addressed, replying and leaving open the ones it disagrees with). Use after a review lists issues, when pr-reviewer hands off, or when the user asks to address review comments or the conversations on a pull request. Arguments - the pull request number (default - the current branch's), optionally the review comment's URL.
 ---
 
-# Fix a pull request's review findings
+# Address a pull request's review conversations
 
 The scripts are in `../../scripts/` relative to this skill's base directory (shown above as "Base directory for
 this skill"). Call them with `sh "<that directory>/<script>"`. Work in the pull request's repository: the one the
