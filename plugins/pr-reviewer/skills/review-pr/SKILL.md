@@ -34,9 +34,9 @@ hook message names, else the current one. Use `gh` for anything on GitHub, never
 5. **Follow the head.** If `post.sh` prints `head-moved=<sha>`, new commits landed during the review: run this
    skill again for the same pull request with `--comment`, and skip step 6 for this report.
 
-6. **Hand off.** If the report kept any finding and the `pr-fixer:fix-pr` skill is available (the pr-fixer plugin),
-   run it for this pull request with the comment link, in the same repository. Otherwise leave the findings to the
-   user.
+6. **Hand off.** If the report kept any finding and the `pr-addresser:address-pr` skill is available (the
+   pr-addresser plugin), run it for this pull request with the comment link, in the same repository. Otherwise leave
+   the findings to the user.
 
 7. **Tell the user** in one or two lines: the comment link (when posted) and how many issues were found.
 

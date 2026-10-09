@@ -1,8 +1,8 @@
 {
   "name": "pr-reviewer",
   "displayName": "PR Reviewer",
-  "version": "1.3.0",
-  "description": "Reviews each pull request push in your session: read-only agents, one against what the linked issues, spec and description ask, two against the project's written decisions and guidelines (including ones fetched from other GitHub repositories) and two for bugs, a validator confirms each finding, and a PR comment with a walkthrough, inline comments and a pr-reviewer commit status are posted. Hands findings to pr-fixer when installed.",
+  "version": "1.3.1",
+  "description": "Reviews each pull request push in your session: read-only agents, one against what the linked issues, spec and description ask, two against the project's written decisions and guidelines (including ones fetched from other GitHub repositories) and two for bugs, a validator confirms each finding, and a PR comment with a walkthrough, inline comments and a pr-reviewer commit status are posted. Hands findings to pr-addresser when installed.",
   "author": {
     "name": "wilsonluc",
     "url": "https://github.com/wilsonluc"

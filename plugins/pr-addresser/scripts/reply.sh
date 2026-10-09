@@ -1,5 +1,5 @@
 #!/bin/sh
-# fix-pr: answer one review conversation, and resolve it when the finding was addressed.
+# address-pr: answer one review conversation, and resolve it when the finding was addressed.
 #   sh reply.sh <pr-number> <thread id> <comment id> <resolve|open> <reply-file>
 # The ids are the thread= and comment= values from threads.sh. With "resolve" the conversation is marked resolved
 # after the reply; with "open" it stays open for the reviewer or the user. Fails when the reply cannot be posted;

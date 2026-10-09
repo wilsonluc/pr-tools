@@ -6,8 +6,8 @@ Two Claude Code plugins for pull requests, working inside your Claude Code sessi
   spec and description ask for, two against the project's written decisions and guidelines (including decision
   records kept in other GitHub repositories) and two for bugs. It confirms each finding with a validator agent, and
   posts a PR comment with a walkthrough, inline comments and a `pr-reviewer` commit status.
-- **pr-fixer**: fixes review findings (from pr-reviewer, another bot or a person). It checks each finding against
-  the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes.
+- **pr-addresser**: addresses review conversations (from pr-reviewer, another bot or a person). It checks each
+  finding against the code, fixes each confirmed one everywhere it occurs, runs the project's checks and pushes.
 
 Together they loop: push → review → fix → push → review, until a review is clean.
 
@@ -28,7 +28,7 @@ For yourself:
 ```
 /plugin marketplace add wilsonluc/pr-tools
 /plugin install pr-reviewer@pr-tools
-/plugin install pr-fixer@pr-tools
+/plugin install pr-addresser@pr-tools
 ```
 
 For everyone working in a repository, commit this to its `.claude/settings.json`; teammates are offered the plugins
@@ -39,7 +39,7 @@ when they trust the folder:
   "extraKnownMarketplaces": {
     "pr-tools": { "source": { "source": "github", "repo": "wilsonluc/pr-tools" } }
   },
-  "enabledPlugins": { "pr-reviewer@pr-tools": true, "pr-fixer@pr-tools": true },
+  "enabledPlugins": { "pr-reviewer@pr-tools": true, "pr-addresser@pr-tools": true },
   "permissions": { "allow": ["Edit(./.pr-reviewer/**)"] }
 }
 ```
@@ -75,7 +75,8 @@ read-only) and hands back only the final review:
    finding linked to its lines at that commit. It adds one inline comment per finding (with a GitHub suggestion
    when a small fix settles it), and sets the status to **success** with a link to it (or **error** if the review
    failed);
-5. the session reviews again if new commits landed meanwhile, and hands the findings to pr-fixer when it is installed.
+5. the session reviews again if new commits landed meanwhile, and hands the findings to pr-addresser when it is
+   installed.
 
 Reviewers report only what is certain and matters: code that will not build or load, logic wrong whatever the
 input, clear breaches of a written decision, and clear misses of what the issues, spec or description ask. Never:
@@ -123,9 +124,9 @@ acme/platform@v2:docs/adr
 clones each repository with `gh` (shallow, into `.pr-reviewer/context/`) or brings its copy up to date, so `gh`
 needs read access to them. A source it cannot fetch is reported in a note and the review goes on without it.
 
-## pr-fixer
+## pr-addresser
 
-`/pr-fixer:fix-pr 42` (or the hand-off from pr-reviewer):
+`/pr-addresser:address-pr 42` (or the hand-off from pr-reviewer):
 
 1. checks the checkout is the pull request's branch, clean and at its head (it never switches branches, stashes or
    pulls on its own);
@@ -138,7 +139,7 @@ needs read access to them. A source it cannot fetch is reported in a note and th
    but leaves **open** the ones it disagrees with or that need your decision. Findings from a plain comment get one
    reply comment. Resolving needs write access to the repository.
 
-There is no round cap. To set one, start Claude Code with `PR_FIXER_MAX_ROUNDS=<n>`: a round is one
+There is no round cap. To set one, start Claude Code with `PR_ADDRESSER_MAX_ROUNDS=<n>`: a round is one
 `fix: address review of #N` commit, and any other commit at the tip of the branch starts the count again.
 
 ## Limits
@@ -158,6 +159,6 @@ There is no round cap. To set one, start Claude Code with `PR_FIXER_MAX_ROUNDS=<
 sh plugins/pr-reviewer/tests/helpers.test.sh   # trigger pattern, poll, review context (no GitHub needed)
 claude plugin validate --strict .              # marketplace
 claude plugin validate --strict plugins/pr-reviewer
-claude plugin validate --strict plugins/pr-fixer
-claude --plugin-dir plugins/pr-reviewer --plugin-dir plugins/pr-fixer   # try them without installing
+claude plugin validate --strict plugins/pr-addresser
+claude --plugin-dir plugins/pr-reviewer --plugin-dir plugins/pr-addresser   # try them without installing
 ```
